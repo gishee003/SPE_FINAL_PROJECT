@@ -23,8 +23,17 @@ pipeline {
         }
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f kubernetes/data_ingestion_deployment.yaml'
-                sh 'kubectl apply -f kubernetes/model_training_deployment.yaml'
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        kubectl config view
+                        kubectl apply -f kubernetes/data_ingestion_deployment.yaml
+                        kubectl apply -f kubernetes/model_training_deployment.yaml
+                        kubectl apply -f kubernetes/model_serving_deployment.yaml
+                        kubectl apply -f kubernetes/model_serving_service.yaml
+                        kubectl apply -f kubernetes/data_ingestion_service.yaml
+                        kubectl apply -f kubernetes/model_training_service.yaml
+                    '''
+                }
             }
         }
     }
