@@ -4,22 +4,28 @@ import pickle
 
 app = Flask(__name__)
 
-# Load the trained model at startup
 with open("churn_model.pkl", "rb") as f:
     model = pickle.load(f)
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Expect JSON payload with customer data
         data = request.get_json()
         df = pd.DataFrame(data)
 
-        # Predict churn
-        predictions = model.predict(df)
+        # Only keep training features
+        X = df[["Age", "Tenure", "Balance"]]
+
+        predictions = model.predict(X)
         results = ["Yes" if p == 1 else "No" for p in predictions]
 
-        return jsonify({"predictions": results})
+        # Optionally return customerID alongside predictions
+        if "customerID" in df.columns:
+            output = [{"customerID": cid, "prediction": res}
+                      for cid, res in zip(df["customerID"], results)]
+            return jsonify({"predictions": output})
+        else:
+            return jsonify({"predictions": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

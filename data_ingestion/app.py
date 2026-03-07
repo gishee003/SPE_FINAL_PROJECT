@@ -1,23 +1,29 @@
 from flask import Flask, request, jsonify
 import pandas as pd
+import requests   # <-- add this
 
 app = Flask(__name__)
 
 @app.route('/ingest', methods=['POST'])
 def ingest_data():
     try:
-        # Expect JSON payload
         data = request.get_json()
         df = pd.DataFrame(data)
 
-        # Simple validation
         if 'customerID' not in df.columns or 'Churn' not in df.columns:
             return jsonify({"error": "Invalid schema"}), 400
 
-        # For now, just log the data (later: push to DB or Kafka)
-        print("Received batch:", df.head())
+        # Forward cleaned data to training microservice
+        response = requests.post(
+            "http://model-training-service:5001/train",  # service name in Kubernetes
+            json=data
+        )
 
-        return jsonify({"status": "success", "rows": len(df)})
+        return jsonify({
+            "status": "forwarded to training",
+            "rows": len(df),
+            "training_response": response.json()
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

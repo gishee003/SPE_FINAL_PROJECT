@@ -14,6 +14,20 @@ spec:
     spec:
       containers:
       - name: model-training
-        image: your-dockerhub-username/model_training:latest
+        image: kirtinigam003/model_training:latest
         ports:
         - containerPort: 5001
+spec:
+  containers:
+  - name: model-training
+    image: kirtinigam003/model_training:latest
+    ports:
+    - containerPort: 5001
+    volumeMounts:
+    - name: churn-model-storage
+      mountPath: /app
+  volumes:
+  - name: churn-model-storage
+    persistentVolumeClaim:
+      claimName: churn-model-pvc
+

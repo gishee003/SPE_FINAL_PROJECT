@@ -14,6 +14,20 @@ spec:
     spec:
       containers:
       - name: model-serving
-        image: your-dockerhub-username/model_serving:latest
+        image: kirtinigam003/model_serving:latest
         ports:
         - containerPort: 5002
+spec:
+  containers:
+  - name: model-serving
+    image: kirtinigam003/model_serving:latest
+    ports:
+    - containerPort: 5002
+    volumeMounts:
+    - name: churn-model-storage
+      mountPath: /app
+  volumes:
+  - name: churn-model-storage
+    persistentVolumeClaim:
+      claimName: churn-model-pvc
+
