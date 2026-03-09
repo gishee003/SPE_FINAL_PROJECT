@@ -5,9 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy code and model
+# Copy code
 COPY serve.py .
-COPY churn_model.pkl .
 
 EXPOSE 5002
 
