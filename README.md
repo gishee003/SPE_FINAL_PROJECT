@@ -120,6 +120,8 @@ kubectl apply -f kubernetes/service/model_training_service.yaml
 kubectl apply -f kubernetes/service/model_serving_service.yaml
 kubectl apply -f kubernetes/service/drift_detection_service.yaml
 
+```
+
 ### Key Notes
 
 PVC: Used to share the .pkl model between training and serving.
