@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import pandas as pd
-import requests   # <-- add this
+import requests   
+import os, requests
 
 app = Flask(__name__)
 
@@ -13,9 +14,11 @@ def ingest_data():
         if 'customerID' not in df.columns or 'Churn' not in df.columns:
             return jsonify({"error": "Invalid schema"}), 400
 
+
+        training_url = os.getenv("TRAINING_URL")
         # Forward cleaned data to training microservice
         response = requests.post(
-            "http://model-training-service:5001/train",  # service name in Kubernetes
+            training_url,
             json=data
         )
 
