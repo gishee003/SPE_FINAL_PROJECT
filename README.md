@@ -50,24 +50,24 @@ Open four separate terminals and execute the following:
 #1. Model Training
 docker run -it --rm --network host \
   -v $(pwd)/data:/data/churn-model \
-  model-training:latest
+  kirtinigam003/model_training:latest
 
 #2. Model Serving
 docker run -it --rm --network host \
   -v $(pwd)/data:/data/churn-model \
-  model-serving:latest
+  kirtinigam003/model_serving:latest
 
 #3. Drift Detection
 docker run -it --rm --network host \
   -v $(pwd)/data:/data/churn-model \
   -e TRAINING_URL=http://localhost:5001/train \
-  drift-detection:latest
+  kirtinigam003/drift_detection:latest
 
 #4. Data Ingestion
 docker run -it --rm --network host \
   -e SERVING_URL=http://localhost:5002/predict \
   -e DRIFT_URL=http://localhost:5003/drift \
-  data-ingestion:latest
+  kirtinigam003/data_ingestion:latest
 ```
 
 ## API Endpoints & Test Commands
