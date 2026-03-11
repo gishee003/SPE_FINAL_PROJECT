@@ -18,6 +18,7 @@ pipeline {
                     # 3. Run the tests from the root
                     # We use the -m flag just like you did in the terminal
                     python3 -m unittest data_ingestion/tests/test_ingestion.py
+                    python3 -m unittest drift_detection/tests/test_drift_detection.py
                 '''
             }
         }
