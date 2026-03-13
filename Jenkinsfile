@@ -92,28 +92,28 @@ pipeline {
         stage('Build Data Ingestion') {
             steps {
                 dir('data_ingestion') {
-                    sh 'docker build -t kirtinigam003/data_ingestion:latest .'
+                    sh 'docker build -t kirtinigam003/data_ingestion:latest -f Dockerfile.ingest .'
                 }
             }
         }
         stage('Build Model Training') {
             steps {
                 dir('model_training') {
-                    sh 'docker build -t kirtinigam003/model_training:latest .'
+                    sh 'docker build -t kirtinigam003/model_training:latest -f Dockerfile.training .'
                 }
             }
         }
         stage('Build Model Serving') {
             steps {
                 dir('model_serving') {
-                    sh 'docker build -t kirtinigam003/model_serving:latest .'
+                    sh 'docker build -t kirtinigam003/model_serving:latest -f Dockerfile.serving .'
                 }
             }
         }
         stage('Build Drift Detection') {
             steps {
                 dir('drift_detection') {
-                    sh 'docker build -t kirtinigam003/drift_detection:latest .'
+                    sh 'docker build -t kirtinigam003/drift_detection:latest -f Dockerfile.drift .'
                 }
             }
         }
