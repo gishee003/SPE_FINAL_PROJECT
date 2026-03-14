@@ -17,7 +17,8 @@
 
 - name: Copy Kubeconfig to Jenkins directory
   copy:
-    src: ~/.kube/config
+    # Update this path to your specific home directory
+    src: /home/kirtinigam003/.kube/config 
     dest: /var/lib/jenkins/.kube/config
     owner: jenkins
     group: jenkins
