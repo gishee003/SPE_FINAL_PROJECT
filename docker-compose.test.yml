@@ -6,8 +6,10 @@ services:
     command: python app.py
     network_mode: "host"
     environment:
-      - SERVING_URL=http://192.168.1.10:5002/predict
-      - DRIFT_URL=http://192.168.1.10:5003/drift
+      - SERVING_URL=http://${HOST_IP}:5002/predict
+      - DRIFT_URL=http://${HOST_IP}:5003/drift
+    volumes:
+      - shared-pvc:/data/churn-model
 
   training:
     build:
@@ -34,7 +36,7 @@ services:
     command: python drift_detection.py
     network_mode: "host"
     environment:
-      - TRAINING_URL=http://192.168.1.10:5001/train
+      - TRAINING_URL=http://${HOST_IP}:5001/train
     volumes:
       - shared-pvc:/data/churn-model
 

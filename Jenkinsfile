@@ -2,6 +2,7 @@ pipeline {
     agent any
     environment {
         // Use the ID you set in Jenkins Credentials for the kubeconfig file
+        HOST_IP = sh(script: "hostname -I | awk '{print \$1}'", returnStdout: true).trim()
         KUBECONFIG = credentials('kubeconfig') 
     }
     stages {
