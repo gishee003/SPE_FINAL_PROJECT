@@ -1,0 +1,25 @@
+---
+- name: Download kubectl binary
+  get_url:
+    url: "https://dl.k8s.io/release/{{ k8s_version }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+  vars:
+    k8s_version: "v1.29.0" # You can update this to latest
+
+- name: Create .kube directory for Jenkins
+  file:
+    path: /var/lib/jenkins/.kube
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: '0755'
+
+- name: Copy Kubeconfig to Jenkins directory
+  copy:
+    src: ~/.kube/config
+    dest: /var/lib/jenkins/.kube/config
+    owner: jenkins
+    group: jenkins
+    mode: '0600'
+    remote_src: yes

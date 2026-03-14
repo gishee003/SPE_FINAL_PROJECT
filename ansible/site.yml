@@ -1,0 +1,7 @@
+---
+- name: Environment Setup for SPE Project
+  hosts: nodes
+  become: yes
+  roles:
+    - docker
+    - kubernetes
