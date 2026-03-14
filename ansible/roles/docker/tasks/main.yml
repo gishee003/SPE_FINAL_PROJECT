@@ -8,18 +8,26 @@
   until: apt_res is success
   retries: 5
   delay: 10
+  
+- name: Ensure keyrings directory exists
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
 
-- name: Add Docker GPG key
-  apt_key:
+- name: Add Docker GPG key (Modern Way)
+  get_url:
     url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+    force: yes
 
 - name: Add Docker Repository
   apt_repository:
-    # Using ansible_facts as recommended by the warning
     repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
     state: present
-    filename: docker-ansible  # Gives it a unique filename to avoid conflicts
+    filename: docker-ansible
+    update_cache: yes
 
 - name: Install Docker Engine
   apt:
