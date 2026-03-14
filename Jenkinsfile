@@ -8,9 +8,16 @@ pipeline {
     stages {
         stage('Environment Setup') {
             steps {
-                echo "Running Ansible Playbook to prepare environment..."
-                // Ensures Docker/K8s are ready. We point to the inventory we created.
-                sh 'ansible-playbook -i ansible/inventory.ini ansible/site.yml'
+                withCredentials([string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PW')]) {
+                    // Create a temporary file for the password
+                    sh 'echo $VAULT_PW > .vault_pass'
+                    
+                    // Run Ansible using the password file
+                    sh 'ansible-playbook -i ansible/inventory.ini ansible/site.yml --vault-password-file .vault_pass'
+                    
+                    // Clean up the password file immediately
+                    sh 'rm .vault_pass'
+                }
             }
         }
 

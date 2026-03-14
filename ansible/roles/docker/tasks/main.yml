@@ -1,4 +1,12 @@
 ---
+- name: Include encrypted secrets
+  include_vars: vars/secrets.yml
+
+- name: Log into Docker Hub
+  docker_login:
+    username: "{{ docker_username }}"
+    password: "{{ docker_password }}"
+    
 - name: Install prerequisite packages
   apt:
     name: [apt-transport-https, ca-certificates, curl, gnupg, lsb-release]
