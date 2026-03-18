@@ -1,142 +1,152 @@
 # SPE Final Project – Microservice Pipeline
 
-This project implements a complete CI/CD pipeline for a churn prediction system using **four microservices**. The architecture handles the full machine learning lifecycle, from training to real-time inference and monitoring.
+This project implements a complete CI/CD pipeline for a churn prediction system using four microservices. It covers the full machine learning lifecycle, from automated training to real-time inference and data drift monitoring.
 
 ---
 
-## 🛠 Microservices Overview
+## Microservices Overview
 
-* **Model Training:** Trains and saves the churn prediction model.
-* **Model Serving:** Serves predictions via a REST API.
-* **Drift Detection:** Monitors incoming data drift against the training distribution.
-* **Data Ingestion:** Ingests customer data and coordinates calls to serving and drift detection.
+- **Model Training (Port 5001)**  
+  Trains and saves the churn prediction model.
 
-All services are containerized with **Docker**, orchestrated via **Kubernetes**, and automated through a **Jenkins** CI/CD pipeline.
+- **Model Serving (Port 5002)**  
+  Serves predictions via a REST API.
+
+- **Drift Detection (Port 5003)**  
+  Monitors incoming data drift against the training distribution.
+
+- **Data Ingestion (Port 5000)**  
+  Ingests customer data and coordinates calls to serving and drift detection.
 
 ---
 
-## 📂 Project Structure
+## Architecture & Tech Stack
 
-```text
+- Microservices Framework: Flask  
+- Containerization: Docker  
+- Orchestration: Kubernetes  
+- CI/CD: Jenkins  
+- Infrastructure as Code: Ansible  
+- Security: Ansible Vault (AES-256 encryption)  
+- Storage: Kubernetes PV/PVC for shared model storage  
+- Networking: Host Networking (for local testing)
+
+---
+
+## Project Structure
+
+```
 SPEFinalProject/
-├── data_ingestion/
-├── model_training/
-├── model_serving/
-├── drift_detection/
-├── kubernetes/
-│   ├── deployment/
-│   ├── service/
-│   ├── pv.yaml
-│   └── pvc.yaml
+├── data_ingestion/     
+├── model_training/     
+├── model_serving/      
+├── drift_detection/    
+├── kubernetes/         
+├── ansible/            
+│   ├── vars/
+│   │   └── secrets.yml 
+│   └── site.yml        
+├── docker-compose.test.yml
 └── Jenkinsfile
 ```
 
+---
+
+## Secure Storage (Ansible Vault)
+
+All sensitive credentials are encrypted using AES-256 via Ansible Vault.
+
+### Edit Secrets
+
+```bash
+ansible-vault edit ansible/vars/secrets.yml
+```
+
+### Run Provisioning
+
+```bash
+ansible-playbook -i ansible/inventory.ini ansible/site.yml \
+--ask-vault-pass --ask-become-pass
+```
+
+---
+
 ## Setup & Installation
 
-### 1. Build Docker Images
-From the project root, build the images for each service:
+### Build Docker Images
 
-```
+```bash
 docker build -t kirtinigam003/model_training:latest ./model_training
 docker build -t kirtinigam003/model_serving:latest ./model_serving
 docker build -t kirtinigam003/drift_detection:latest ./drift_detection
 docker build -t kirtinigam003/data_ingestion:latest ./data_ingestion
 ```
 
-### 2. Run Locally (Using Host Network)
-Open four separate terminals and execute the following:
+---
 
-```
-#1. Model Training
-docker run -it --rm --network host \
-  -v $(pwd)/data:/data/churn-model \
-  kirtinigam003/model_training:latest
+## Run Locally (Docker Compose)
 
-#2. Model Serving
-docker run -it --rm --network host \
-  -v $(pwd)/data:/data/churn-model \
-  kirtinigam003/model_serving:latest
-
-#3. Drift Detection
-docker run -it --rm --network host \
-  -v $(pwd)/data:/data/churn-model \
-  -e TRAINING_URL=http://localhost:5001/train \
-  kirtinigam003/drift_detection:latest
-
-#4. Data Ingestion
-docker run -it --rm --network host \
-  -e SERVING_URL=http://localhost:5002/predict \
-  -e DRIFT_URL=http://localhost:5003/drift \
-  kirtinigam003/data_ingestion:latest
+```bash
+export HOST_IP=$(hostname -I | awk '{print $1}')
+docker compose -f docker-compose.test.yml up --build
 ```
 
-## API Endpoints & Test Commands
+---
 
-### Train the Model
-```
+## API Testing
+
+### Step 1: Train Model
+
+```bash
 curl -X POST http://localhost:5001/train \
-  -H "Content-Type: application/json" \
-  -d '[{"Age":45,"Tenure":5,"Balance":2000,"Churn":"No"}, {"Age":30,"Tenure":2,"Balance":500,"Churn":"Yes"}]'
+-H "Content-Type: application/json" \
+-d '[{"Age":45,"Tenure":5,"Balance":2000,"Churn":"No"},
+{"Age":30,"Tenure":2,"Balance":500,"Churn":"Yes"}]'
 ```
 
-### Get a Prediction
-```
-curl -X POST http://localhost:5002/predict \
-  -H "Content-Type: application/json" \
-  -d '[{"customerID":"C001","Age":45,"Tenure":5,"Balance":2000}]'
+### Step 2: Test Ingestion Pipeline
+
+```bash
+curl -i -X POST http://localhost:5000/ingest \
+-H "Content-Type: application/json" \
+-d '[{"customerID":"C001","Age":35,"Tenure":3,"Balance":2500,"Churn":"No"}]'
 ```
 
-### Check Drift
-```
-curl -X POST http://localhost:5003/drift \
-  -H "Content-Type: application/json" \
-  -d '[{"Age":45,"Tenure":5,"Balance":2000,"Churn":"No"}]'
-```
+---
 
-### Ingest Data
-```
-curl -X POST http://localhost:5000/ingest \
-  -H "Content-Type: application/json" \
-  -d '[{"customerID":"C001","Age":45,"Tenure":5,"Balance":2000,"Churn":"No"}]'
-```
+## Kubernetes Deployment
 
-## Kubernetes Depolyment
-Ensure your images are pushed to Docker Hub, then apply the manifests:
+### Setup Storage
 
-```
-# 1. Setup Storage
+```bash
 kubectl apply -f kubernetes/pv.yaml
 kubectl apply -f kubernetes/pvc.yaml
-
-# 2. Deploy Services
-kubectl apply -f kubernetes/deployment/data_ingestion_deployment.yaml
-kubectl apply -f kubernetes/deployment/model_training_deployment.yaml
-kubectl apply -f kubernetes/deployment/model_serving_deployment.yaml
-kubectl apply -f kubernetes/deployment/drift_detection_deployment.yaml
-
-# 3. Apply Services
-kubectl apply -f kubernetes/service/data_ingestion_service.yaml
-kubectl apply -f kubernetes/service/model_training_service.yaml
-kubectl apply -f kubernetes/service/model_serving_service.yaml
-kubectl apply -f kubernetes/service/drift_detection_service.yaml
-
 ```
 
-### Key Notes
+### Deploy Services
 
-PVC: Used to share the .pkl model between training and serving.
-
-Ports: Ingestion (5000), Training (5001), Serving (5002), Drift (5003).
-
-CI/CD: Jenkinsfile automates the build/push/deploy cycle.
-
-### Pipeline Flow
-
+```bash
+kubectl apply -f kubernetes/deployment/
+kubectl apply -f kubernetes/service/
 ```
-flowchart LR
-    A[Model Training] --> B[Model Serving]
-    A --> C[Drift Detection]
-    B --> D[Data Ingestion]
-    C --> D
-    D -->|Final Response| User
-```
+
+---
+
+## CI/CD Pipeline Flow
+
+1. **Checkout** – Pull latest code from GitHub  
+2. **Environment Setup** – Provision VM using Ansible  
+3. **Security** – Fetch Ansible Vault credentials  
+4. **Build & Push** – Build Docker images and push to Docker Hub  
+5. **Integration Test** – Run containers, train model, and validate pipeline  
+6. **Deploy** – Update Kubernetes cluster with latest images  
+
+---
+
+## Notes
+
+- Ensure at least two classes (`Churn: Yes` and `No`) during training.
+- PVC is used to share model files between training and serving services.
+- Host networking is used locally for easier communication.
+
+---
