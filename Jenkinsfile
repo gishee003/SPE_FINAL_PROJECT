@@ -119,16 +119,29 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    # Ensure PV/PVC exist first
-                    kubectl apply -f kubernetes/pv.yaml
-                    kubectl apply -f kubernetes/pvc.yaml
-                    
-                    # Apply all deployments and services in the folders
-                    kubectl apply -f kubernetes/deployment/
-                    kubectl apply -f kubernetes/service/
-                    
-                    # Verify rollout
-                    kubectl get pods
+                    export MINIKUBE_HOME=/home/kirtinigam003
+                    export KUBECONFIG=/home/kirtinigam003/.kube/config
+                        
+                    echo "Starting Deployment..."
+
+                        # 1. Check if Minikube is actually Running, ignoring stale warnings
+                        if ! minikube status | grep -q "Running"; then
+                            echo "❌ ERROR: Minikube is not running. Run 'minikube start' on the host."
+                            exit 1
+                        fi
+
+                        # 2. Deploy using --validate=false to skip the network check that keeps failing
+                        # This bypasses the 'connection refused' error on the openapi schema
+                        echo "Applying Kubernetes manifests..."
+                        kubectl apply -f kubernetes/pv.yaml --validate=false
+                        kubectl apply -f kubernetes/pvc.yaml --validate=false
+                        
+                        kubectl apply -f kubernetes/deployment/ --validate=false
+                        kubectl apply -f kubernetes/service/ --validate=false
+
+                        # 3. Show current status
+                        echo "✅ Deployment commands sent successfully."
+                        kubectl get pods
                 '''
             }
         }
