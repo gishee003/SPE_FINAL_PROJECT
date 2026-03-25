@@ -119,29 +119,22 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    export MINIKUBE_HOME=/home/kirtinigam003
-                    export KUBECONFIG=/home/kirtinigam003/.kube/config
-                        
                     echo "Starting Deployment..."
+                    # kubectl will now use the config in /var/lib/jenkins/.kube/config automatically
+                    kubectl cluster-info
 
-                        # 1. Check if Minikube is actually Running, ignoring stale warnings
-                        if ! minikube status | grep -q "Running"; then
-                            echo "❌ ERROR: Minikube is not running. Run 'minikube start' on the host."
-                            exit 1
-                        fi
+                    # 2. Deploy using --validate=false to skip the network check that keeps failing
+                    # This bypasses the 'connection refused' error on the openapi schema
+                    echo "Applying Kubernetes manifests..."
+                    kubectl apply -f kubernetes/pv.yaml --validate=false
+                    kubectl apply -f kubernetes/pvc.yaml --validate=false
+                    
+                    kubectl apply -f kubernetes/deployment/ --validate=false
+                    kubectl apply -f kubernetes/service/ --validate=false
 
-                        # 2. Deploy using --validate=false to skip the network check that keeps failing
-                        # This bypasses the 'connection refused' error on the openapi schema
-                        echo "Applying Kubernetes manifests..."
-                        kubectl apply -f kubernetes/pv.yaml --validate=false
-                        kubectl apply -f kubernetes/pvc.yaml --validate=false
-                        
-                        kubectl apply -f kubernetes/deployment/ --validate=false
-                        kubectl apply -f kubernetes/service/ --validate=false
-
-                        # 3. Show current status
-                        echo "✅ Deployment commands sent successfully."
-                        kubectl get pods
+                    # 3. Show current status
+                    echo "✅ Deployment commands sent successfully."
+                    kubectl get pods
                 '''
             }
         }
