@@ -15,6 +15,13 @@ spec:
       containers:
       - name: model-training
         image: kirtinigam003/model_training:latest
+        resources:
+          requests:
+            cpu: "200m"      # This stays "m" for millicores
+            memory: "256Mi"  # Changed from 200m to 256Mi (Megabytes)
+          limits:
+            cpu: "1000m"     # 1 full core
+            memory: "1Gi"    # 1 Gigabyte
         ports:
         - containerPort: 5001
         volumeMounts:                
