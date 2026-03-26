@@ -117,10 +117,16 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
+            environment {
+                // Force kubectl to use the Jenkins-specific config
+                KUBECONFIG = '/var/lib/jenkins/.kube/config'
+            }
             steps {
                 sh '''
                     echo "Starting Deployment..."
-                    # kubectl will now use the config in /var/lib/jenkins/.kube/config automatically
+                    # Fix the paths inside the config for this session
+                    sed -i 's|/home/kirtinigam003|/var/lib/jenkins|g' $KUBECONFIG
+                    
                     kubectl cluster-info
 
                     # 2. Deploy using --validate=false to skip the network check that keeps failing
