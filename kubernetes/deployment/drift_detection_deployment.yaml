@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: drift-detection
-        image: kirtinigam003/drift-detection:latest
+        image: kirtinigam003/drift_detection:latest
         ports:
         - containerPort: 5003
         env:
