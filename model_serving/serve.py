@@ -1,46 +1,40 @@
 from flask import Flask, request, jsonify
-import pandas as pd
 import pickle
 import os
+import pandas as pd
 
 app = Flask(__name__)
 
-# Path to PVC mount
-MODEL_PATH = "/data/churn-model/churn_model.pkl"
+# Path to model inside PVC
+model_path = "/data/churn-model/churn_model.pkl"
 
-# # Load model from PVC
-# if os.path.exists(MODEL_PATH):
-#     with open(MODEL_PATH, "rb") as f:
-#         model = pickle.load(f)
-# else:
-#     model = None
-model = None
+# Load model at startup
+with open(model_path, "rb") as f:
+    model = pickle.load(f)
+
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        global model
-        if model is None:
-            if os.path.exists(MODEL_PATH):
-                with open(MODEL_PATH, "rb") as f:
-                    model = pickle.load(f)
-            else:
-                return jsonify({"error": "No model found in PVC"}), 500
         data = request.get_json()
         df = pd.DataFrame(data)
 
-        # Only keep training features
-        X = df[["Age", "Tenure", "Balance"]]
+        # Drop target if accidentally included
+        if 'Exited' in df.columns:
+            df = df.drop(columns=['Exited'])
 
-        predictions = model.predict(X)
-        results = ["Yes" if p == 1 else "No" for p in predictions]
+        # Make predictions
+        preds = model.predict(df)
+        probs = model.predict_proba(df)[:, 1]  # probability of churn
 
-        # Optionally return customerID alongside predictions
-        if "customerID" in df.columns:
-            output = [{"customerID": cid, "prediction": res}
-                      for cid, res in zip(df["customerID"], results)]
-            return jsonify({"predictions": output})
-        else:
-            return jsonify({"predictions": results})
+        results = []
+        for i in range(len(df)):
+            results.append({
+                "CustomerId": df.iloc[i].get("CustomerId", None),
+                "prediction": int(preds[i]),
+                "churn_probability": float(probs[i])
+            })
+
+        return jsonify({"status": "success", "results": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

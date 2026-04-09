@@ -55,7 +55,34 @@ pipeline {
                     def trainStatus = sh(script: """
                         curl -s -X POST http://${hostIp}:5001/train \
                         -H "Content-Type: application/json" \
-                        -d '[{"Age": 30, "Tenure": 5, "Balance": 1000, "Churn": "No"}, {"Age": 45, "Tenure": 1, "Balance": 8000, "Churn": "Yes"}]'
+                        -d '[{
+                            "CustomerId": 1,
+                            "CreditScore": 600,
+                            "Geography": "France",
+                            "Gender": "Male",
+                            "Age": 30,
+                            "Tenure": 5,
+                            "Balance": 1000.0,
+                            "NumOfProducts": 1,
+                            "HasCrCard": 1,
+                            "IsActiveMember": 1,
+                            "EstimatedSalary": 40000.0,
+                            "Exited": 0
+                        },
+                        {
+                            "CustomerId": 2,
+                            "CreditScore": 650,
+                            "Geography": "Germany",
+                            "Gender": "Female",
+                            "Age": 45,
+                            "Tenure": 1,
+                            "Balance": 8000.0,
+                            "NumOfProducts": 2,
+                            "HasCrCard": 0,
+                            "IsActiveMember": 0,
+                            "EstimatedSalary": 50000.0,
+                            "Exited": 1
+                        }]'
                     """, returnStdout: true).trim()
                     
                     if (!trainStatus.contains("success")) {
@@ -63,7 +90,24 @@ pipeline {
                     }
 
                     // Full Pipeline Test
-                    def response = sh(script: "curl -s -X POST http://${hostIp}:5000/ingest -H 'Content-Type: application/json' -d '[{\"customerID\": \"123\", \"Age\": 35, \"Tenure\": 3, \"Balance\": 2500, \"Churn\": \"No\"}]'", returnStdout: true).trim()
+                    def response = sh(script: """
+                        curl -s -X POST http://${hostIp}:5000/ingest \
+                        -H 'Content-Type: application/json' \
+                        -d '[{
+                            "CustomerId": 123,
+                            "CreditScore": 700,
+                            "Geography": "Spain",
+                            "Gender": "Female",
+                            "Age": 35,
+                            "Tenure": 3,
+                            "Balance": 2500.0,
+                            "NumOfProducts": 1,
+                            "HasCrCard": 1,
+                            "IsActiveMember": 1,
+                            "EstimatedSalary": 45000.0,
+                            "Exited": 0
+                        }]'
+                    """, returnStdout: true).trim()
                     echo "Full Pipeline Response: ${response}"
 
                     if (response.contains("error") || !response.contains("ingested")) {
@@ -78,6 +122,7 @@ pipeline {
                 }
             }
         }
+
 	stage('Docker Login') {
 		steps {
     			withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {

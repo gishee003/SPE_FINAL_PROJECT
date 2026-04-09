@@ -30,19 +30,24 @@ def detect_drift():
 
         drift_report = {}
 
-        # 1. Data Drift: KS test for each feature
+        # 1. Data Drift: KS test for each numeric feature
         for feature in reference["feature_means"].keys():
-            stat, p_value = ks_2samp(df[feature].values,
-                                     np.random.normal(reference["feature_means"][feature],
-                                                      reference["feature_stds"][feature],
-                                                      len(df)))
-            drift_report[f"{feature}_drift"] = (p_value < 0.05)
+            if feature in df.columns:
+                stat, p_value = ks_2samp(
+                    df[feature].values,
+                    np.random.normal(
+                        reference["feature_means"][feature],
+                        reference["feature_stds"][feature],
+                        len(df)
+                    )
+                )
+                drift_report[f"{feature}_drift"] = (p_value < 0.05)
 
-        # 2. Label Drift: compare churn distribution
-        if "Churn" in df.columns:
-            new_dist = df["Churn"].map({'Yes':1, 'No':0}).value_counts(normalize=True).to_dict()
+        # 2. Label Drift: compare Exited distribution
+        if "Exited" in df.columns:
+            new_dist = df["Exited"].value_counts(normalize=True).to_dict()
             drift_report["label_drift"] = any(
-                abs(new_dist.get(k,0) - reference["label_distribution"].get(k,0)) > 0.1
+                abs(new_dist.get(k, 0) - reference["label_distribution"].get(k, 0)) > 0.1
                 for k in reference["label_distribution"].keys()
             )
 
@@ -60,8 +65,8 @@ def detect_drift():
                 train_response = requests.post(training_url, json=data)
                 response["training_response"] = train_response.json()
 
-        return jsonify({"drift_detected": drift_detected})
-        
+        return jsonify(response)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
