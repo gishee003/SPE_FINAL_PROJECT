@@ -18,8 +18,8 @@ class TestDriftDetection(unittest.TestCase):
         "label_distribution": {1: 0.2, 0: 0.8}
     })
     @patch('requests.post')  # Mock the retraining trigger
-    def test_detect_drift_success(self, mock_post, mock_reference):
-        
+    def test_detect_drift_success(self, mock_post):
+
         # Mock retraining response
         mock_train_resp = MagicMock()
         mock_train_resp.json.return_value = {"status": "retraining_started"}
