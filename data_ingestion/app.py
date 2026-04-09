@@ -11,14 +11,19 @@ def ingest_data():
         data = request.get_json()
         df = pd.DataFrame(data)
 
-        if 'customerID' not in df.columns or 'Churn' not in df.columns:
-            return jsonify({"error": "Invalid schema"}), 400
+        # Bank Churn dataset schema validation
+        required_columns = [
+            'CustomerId', 'CreditScore', 'Geography', 'Gender',
+            'Age', 'Tenure', 'Balance', 'NumOfProducts',
+            'HasCrCard', 'IsActiveMember', 'EstimatedSalary', 'Exited'
+        ]
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            return jsonify({"error": f"Missing columns: {missing}"}), 400
 
         # Forward to serving for predictions
         serving_url = os.getenv("SERVING_URL")
         print(f"Attempting to reach Serving at: {serving_url}")
-
-        # Add a 5 second timeout
         serving_response = requests.post(serving_url, json=data, timeout=5)
 
         # Forward to drift detection
