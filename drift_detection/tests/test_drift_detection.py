@@ -12,16 +12,14 @@ class TestDriftDetection(unittest.TestCase):
         self.app.testing = True
         os.environ["TRAINING_URL"] = "http://fake-training-service/train"
 
-    @patch('drift_detection.drift_detection.reference')  # Mock the global 'reference' object
+    @patch('drift_detection.drift_detection.reference', {
+        "feature_means": {"Age": 40.0},
+        "feature_stds": {"Age": 5.0},
+        "label_distribution": {1: 0.2, 0: 0.8}
+    })
     @patch('requests.post')  # Mock the retraining trigger
     def test_detect_drift_success(self, mock_post, mock_reference):
-        # 1. Setup Mock Reference Data
-        mock_reference.__getitem__.side_effect = {
-            "feature_means": {"Age": 40.0},
-            "feature_stds": {"Age": 5.0},
-            "label_distribution": {1: 0.2, 0: 0.8}
-        }.get
-
+        
         # Mock retraining response
         mock_train_resp = MagicMock()
         mock_train_resp.json.return_value = {"status": "retraining_started"}
