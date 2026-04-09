@@ -17,6 +17,12 @@
   retries: 5
   delay: 10
 
+- name: Install Python venv package
+  apt:
+    name: python3.10-venv
+    state: present
+    update_cache: yes
+
 - name: Ensure keyrings directory exists
   file:
     path: /etc/apt/keyrings
