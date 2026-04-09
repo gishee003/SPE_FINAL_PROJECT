@@ -13,20 +13,30 @@ class TestDriftDetection(unittest.TestCase):
         os.environ["TRAINING_URL"] = "http://fake-training-service/train"
 
     @patch('drift_detection.drift_detection.reference', {
-        "feature_means": {"Age": 40.0},
-        "feature_stds": {"Age": 5.0},
+        "feature_means": {
+            "Age": 40.0,
+            "CreditScore": 650.0,
+            "Balance": 50000.0,
+            "Tenure": 5.0,
+            "EstimatedSalary": 45000.0
+        },
+        "feature_stds": {
+            "Age": 5.0,
+            "CreditScore": 50.0,
+            "Balance": 10000.0,
+            "Tenure": 2.0,
+            "EstimatedSalary": 5000.0
+        },
         "label_distribution": {1: 0.2, 0: 0.8}
     })
     @patch('requests.post')  # Mock the retraining trigger
     def test_detect_drift_success(self, mock_post):
-
         # Mock retraining response
         mock_train_resp = MagicMock()
         mock_train_resp.json.return_value = {"status": "retraining_started"}
         mock_post.return_value = mock_train_resp
 
-        # 2. Define Payload (Data significantly different to trigger drift)
-        # Age mean here is ~100, while reference is 40
+        # Payload with extreme Age and Balance to trigger drift
         payload = [
             {
                 "CustomerId": 1,
@@ -35,7 +45,7 @@ class TestDriftDetection(unittest.TestCase):
                 "Gender": "Male",
                 "Age": 100,
                 "Tenure": 3,
-                "Balance": 50000.0,
+                "Balance": 90000.0,
                 "NumOfProducts": 2,
                 "HasCrCard": 1,
                 "IsActiveMember": 1,
@@ -49,7 +59,7 @@ class TestDriftDetection(unittest.TestCase):
                 "Gender": "Female",
                 "Age": 110,
                 "Tenure": 5,
-                "Balance": 60000.0,
+                "Balance": 95000.0,
                 "NumOfProducts": 1,
                 "HasCrCard": 0,
                 "IsActiveMember": 0,
@@ -58,14 +68,12 @@ class TestDriftDetection(unittest.TestCase):
             }
         ]
 
-        # 3. Make Request
         response = self.app.post('/drift', json=payload)
         data = response.get_json()
 
-        # 4. Assertions
         self.assertEqual(response.status_code, 200)
         self.assertIn("drift_detected", data)
-        self.assertTrue(data["drift_detected"])  # Expect drift due to large Age difference
+        self.assertTrue(data["drift_detected"])  # Expect drift due to large Age/Balance difference
 
     def test_no_reference_found(self):
         # Patch reference to be None to test the 'No reference distribution found' logic
