@@ -27,6 +27,9 @@ pipeline {
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install -r data_ingestion/requirements.txt
+                    pip install -r drift_detection/requirements.txt
+                    pip install -r model_serving/requirements.txt
+                    pip install -r model_training/requirements.txt
                     python3 -m unittest data_ingestion/tests/test_ingestion.py
                     python3 -m unittest drift_detection/tests/test_drift_detection.py
                     python3 -m unittest model_serving/tests/test_serving.py
