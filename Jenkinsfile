@@ -132,7 +132,7 @@ pipeline {
                 sh '''
                     echo "Starting Deployment..."
                     # Fix the paths inside the config for this session
-                    sed -i 's|/home/kirtinigam003|/var/lib/jenkins|g' $KUBECONFIG
+                    sed -i 's|/home/kirti/.minikube|/var/lib/jenkins/.minikube|g' /var/lib/jenkins/.kube/config
                     
                     kubectl cluster-info
 
