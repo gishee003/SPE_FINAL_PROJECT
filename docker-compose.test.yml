@@ -9,7 +9,7 @@ services:
       - SERVING_URL=http://${HOST_IP}:5002/predict
       - DRIFT_URL=http://${HOST_IP}:5003/drift
     volumes:
-      - shared-pvc:/data/churn-model
+      - ./data/churn-model:/data/churn-model
 
   training:
     build:
@@ -18,7 +18,7 @@ services:
     command: python train.py
     network_mode: "host"
     volumes:
-      - shared-pvc:/data/churn-model
+      - ./data/churn-model:/data/churn-model
 
   serving:
     build:
@@ -27,7 +27,7 @@ services:
     command: python serve.py
     network_mode: "host"
     volumes:
-      - shared-pvc:/data/churn-model
+      - ./data/churn-model:/data/churn-model
 
   drift:
     build:
@@ -38,7 +38,7 @@ services:
     environment:
       - TRAINING_URL=http://${HOST_IP}:5001/train
     volumes:
-      - shared-pvc:/data/churn-model
+      - ./data/churn-model:/data/churn-model
 
 volumes:
   shared-pvc:
