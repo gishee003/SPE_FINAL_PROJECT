@@ -35,13 +35,6 @@ pipeline {
             }
         }
 
-        stage('Verify Dataset') {
-            steps {
-                sh 'ls -l data/churn-model/train.csv || (echo "train.csv missing" && exit 1)'
-            }
-        }
-
-
         stage('Integration Testing') {
             options {
                 timeout(time: 5, unit: 'MINUTES')

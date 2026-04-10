@@ -9,7 +9,7 @@ services:
       - SERVING_URL=http://${HOST_IP}:5002/predict
       - DRIFT_URL=http://${HOST_IP}:5003/drift
     volumes:
-      - ./data/churn-model:/data/churn-model
+      - /var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model
 
   training:
     build:
@@ -18,7 +18,7 @@ services:
     command: python train.py
     network_mode: "host"
     volumes:
-      - ./data/churn-model:/data/churn-model
+      - /var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model
     healthcheck:
       test: ["CMD", "test", "-f", "/data/churn-model/churn_model.pkl"]
       interval: 10s
@@ -35,7 +35,7 @@ services:
       training:
         condition: service_healthy
     volumes:
-      - ./data/churn-model:/data/churn-model
+      - /var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model
 
   drift:
     build:
@@ -49,7 +49,7 @@ services:
     environment:
       - TRAINING_URL=http://${HOST_IP}:5001/train
     volumes:
-      - ./data/churn-model:/data/churn-model
+      - /var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model
 
 volumes:
   shared-pvc:
