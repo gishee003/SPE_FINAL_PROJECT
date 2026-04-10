@@ -19,6 +19,11 @@ services:
     network_mode: "host"
     volumes:
       - ./data/churn-model:/data/churn-model
+    healthcheck:
+      test: ["CMD", "test", "-f", "/data/churn-model/churn_model.pkl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   serving:
     build:
@@ -26,6 +31,9 @@ services:
       dockerfile: Dockerfile.serving
     command: python serve.py
     network_mode: "host"
+    depends_on:
+      training:
+        condition: service_healthy
     volumes:
       - ./data/churn-model:/data/churn-model
 
@@ -35,6 +43,9 @@ services:
       dockerfile: Dockerfile.drift
     command: python drift_detection.py
     network_mode: "host"
+    depends_on:
+      training:
+        condition: service_healthy
     environment:
       - TRAINING_URL=http://${HOST_IP}:5001/train
     volumes:

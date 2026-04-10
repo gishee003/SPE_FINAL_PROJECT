@@ -1,7 +1,7 @@
 from flask import Flask, jsonify
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import pickle
@@ -20,18 +20,19 @@ def train_model():
         df = pd.read_csv(data_path)
 
         # Features and target
-        X = df.drop(columns=['Exited'])
-        y = df['Exited']  # Already 0/1 in Kaggle dataset
+        X = df.drop(columns=['Exited', 'Surname', 'id'])  # drop non-numeric string columns
+        y = df['Exited']
 
         # Identify categorical and numeric columns
         categorical = ['Geography', 'Gender']
         numeric = [col for col in X.columns if col not in categorical]
 
-        # Preprocessing: one-hot encode categorical, passthrough numeric
+
+        # Preprocessing: one-hot encode categorical, scale numeric
         preprocessor = ColumnTransformer(
             transformers=[
                 ('cat', OneHotEncoder(handle_unknown='ignore'), categorical),
-                ('num', 'passthrough', numeric)
+                ('num', StandardScaler(), numeric)
             ]
         )
 
@@ -44,7 +45,7 @@ def train_model():
         # Train model
         model.fit(X, y)
 
-        # Save model to PVC
+        # Save model to PVC (pipeline includes preprocessing!)
         model_path = os.path.join(pvc_path, "churn_model.pkl")
         with open(model_path, "wb") as f:
             pickle.dump(model, f)

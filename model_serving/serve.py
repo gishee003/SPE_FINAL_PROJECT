@@ -37,16 +37,16 @@ def predict():
             if feat not in df.columns:
                 raise ValueError(f"Missing required feature: {feat}")
 
-        # Make predictions
+        # Make predictions using the full pipeline (preprocessor + classifier)
         preds = model.predict(df)
-        probs = model.predict_proba(df)[:, 1]  # probability of churn
+        probs = model.predict_proba(df)[:, 1]
 
         results = []
         for i in range(len(df)):
             results.append({
-                "CustomerId": int(df.iloc[i].get("CustomerId", 0)),  # cast to int
-                "prediction": int(preds[i]),                         # cast to int
-                "churn_probability": float(probs[i])                 # cast to float
+                "CustomerId": int(df.iloc[i].get("CustomerId", 0)),
+                "prediction": int(preds[i]),
+                "churn_probability": float(probs[i])
             })
 
         return jsonify({"status": "success", "results": results})
