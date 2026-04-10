@@ -18,8 +18,6 @@ data/
 *.joblib
 
 !data/churn-model/train.csv
-!data/churn-model/churn_model.pkl
-!data/churn-model/reference_distribution.pkl
 
 # Docker
 *.pid
