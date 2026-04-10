@@ -9,18 +9,33 @@ app = Flask(__name__)
 model_path = "/data/churn-model/churn_model.pkl"
 
 # Load model at startup
-with open(model_path, "rb") as f:
-    model = pickle.load(f)
+model = None
+if os.path.exists(model_path):
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        if model is None:
+            raise ValueError("Model not loaded")
+
         data = request.get_json()
         df = pd.DataFrame(data)
 
         # Drop target if accidentally included
         if 'Exited' in df.columns:
             df = df.drop(columns=['Exited'])
+
+        # Ensure required Bank Churn features exist
+        required_features = [
+            "CreditScore", "Geography", "Gender", "Age", "Tenure",
+            "Balance", "NumOfProducts", "HasCrCard", "IsActiveMember",
+            "EstimatedSalary"
+        ]
+        for feat in required_features:
+            if feat not in df.columns:
+                raise ValueError(f"Missing required feature: {feat}")
 
         # Make predictions
         preds = model.predict(df)
@@ -29,13 +44,15 @@ def predict():
         results = []
         for i in range(len(df)):
             results.append({
-                "CustomerId": df.iloc[i].get("CustomerId", None),
-                "prediction": int(preds[i]),
-                "churn_probability": float(probs[i])
+                "CustomerId": int(df.iloc[i].get("CustomerId", 0)),  # cast to int
+                "prediction": int(preds[i]),                         # cast to int
+                "churn_probability": float(probs[i])                 # cast to float
             })
 
         return jsonify({"status": "success", "results": results})
+    
     except Exception as e:
+        print("Model Serving error:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

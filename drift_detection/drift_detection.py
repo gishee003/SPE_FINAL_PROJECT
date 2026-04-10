@@ -41,15 +41,16 @@ def detect_drift():
                         len(df)
                     )
                 )
-                drift_report[f"{feature}_drift"] = (p_value < 0.05)
+                drift_report[f"{feature}_drift"] = bool(p_value < 0.05)
 
         # 2. Label Drift: compare Exited distribution
         if "Exited" in df.columns:
             new_dist = df["Exited"].value_counts(normalize=True).to_dict()
-            drift_report["label_drift"] = any(
+            drift_report["label_drift"] = bool(any(
                 abs(new_dist.get(k, 0) - reference["label_distribution"].get(k, 0)) > 0.1
                 for k in reference["label_distribution"].keys()
-            )
+            ))
+
 
         # 3. Concept Drift: placeholder
         drift_report["concept_drift"] = "monitor prediction accuracy over time"
@@ -68,6 +69,7 @@ def detect_drift():
         return jsonify(response)
 
     except Exception as e:
+        print("Drift detection error:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

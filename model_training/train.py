@@ -60,7 +60,9 @@ def train_model():
             pickle.dump(reference, f)
 
         return jsonify({"status": "success", "message": "Model and reference saved to PVC"})
+    
     except Exception as e:
+        print("Model Training error:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

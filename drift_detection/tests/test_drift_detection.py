@@ -4,32 +4,39 @@ import os
 import json
 
 # Adjust import to match your file structure
-from drift_detection.drift_detection import app 
+import drift_detection.drift_detection as drift_detection 
 
 class TestDriftDetection(unittest.TestCase):
     def setUp(self):
-        self.app = app.test_client()
+        self.app = drift_detection.app.test_client()
         self.app.testing = True
         os.environ["TRAINING_URL"] = "http://fake-training-service/train"
 
-    @patch('drift_detection.drift_detection.reference', {
-        "feature_means": {
-            "Age": 40.0,
-            "CreditScore": 650.0,
-            "Balance": 50000.0,
-            "Tenure": 5.0,
-            "EstimatedSalary": 45000.0
-        },
-        "feature_stds": {
-            "Age": 5.0,
-            "CreditScore": 50.0,
-            "Balance": 10000.0,
-            "Tenure": 2.0,
-            "EstimatedSalary": 5000.0
-        },
-        "label_distribution": {1: 0.2, 0: 0.8}
-    })
-    @patch('requests.post')  # Mock the retraining trigger
+        drift_detection.reference = {
+            "feature_means": {
+                "Age": 40.0,
+                "CreditScore": 650.0,
+                "Balance": 50000.0,
+                "Tenure": 5.0,
+                "EstimatedSalary": 45000.0,
+                "NumOfProducts": 1.0,
+                "HasCrCard": 0.5,
+                "IsActiveMember": 0.5
+            },
+            "feature_stds": {
+                "Age": 5.0,
+                "CreditScore": 50.0,
+                "Balance": 10000.0,
+                "Tenure": 2.0,
+                "EstimatedSalary": 5000.0,
+                "NumOfProducts": 0.5,
+                "HasCrCard": 0.5,
+                "IsActiveMember": 0.5
+            },
+            "label_distribution": {1: 0.2, 0: 0.8}
+        }
+        
+    @patch('requests.post')
     def test_detect_drift_success(self, mock_post):
         # Mock retraining response
         mock_train_resp = MagicMock()
