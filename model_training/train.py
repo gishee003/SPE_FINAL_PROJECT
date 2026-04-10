@@ -20,7 +20,7 @@ def train_model():
         df = pd.read_csv(data_path)
 
         # Features and target
-        X = df.drop(columns=['Exited', 'Surname', 'id'])  # drop non-numeric string columns
+        X = df.drop(columns=['Exited', 'Surname', 'id'], errors='ignore')  # drop non-numeric string columns
         y = df['Exited']
 
         # Identify categorical and numeric columns
