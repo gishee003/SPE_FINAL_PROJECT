@@ -21,7 +21,12 @@ def predict():
             raise ValueError("Model not loaded")
 
         data = request.get_json()
-        df = pd.DataFrame(data,index=[0])
+        if isinstance(data, dict):
+            df = pd.DataFrame([data])
+        elif isinstance(data, list):
+            df = pd.DataFrame(data)
+        else:
+            return jsonify({"error": "Invalid input format"})
 
         # Drop target if accidentally included
         if 'Exited' in df.columns:
