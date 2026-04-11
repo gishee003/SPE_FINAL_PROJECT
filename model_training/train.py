@@ -16,14 +16,17 @@ pvc_path = "/data/churn-model"
 @app.route('/train', methods=['POST'])
 def train_model():
     try:
-        payload = request.get_json(silent=True)
-        if not payload or "features" not in payload:
-            return jsonify({"error": "Invalid payload"}), 500
-
         print("Listing /data/churn-model:", os.listdir("./data/churn-model"))
 
-        # Load dataset directly from mounted PVC
-        df = pd.read_csv(data_path)
+        payload = request.get_json(silent=True)
+        if payload and isinstance(payload, list):
+            df = pd.DataFrame(payload)
+        else:
+            df = pd.read_csv(data_path)
+
+        required_cols = {"Exited", "Geography", "Gender"}
+        if not required_cols.issubset(df.columns):
+            return jsonify({"error": "Dataset missing required columns"}), 500
 
         # Features and target
         X = df.drop(columns=['Exited', 'Surname', 'id'], errors='ignore')  # drop non-numeric string columns
