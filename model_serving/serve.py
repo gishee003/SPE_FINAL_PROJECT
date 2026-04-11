@@ -3,6 +3,9 @@ import pickle
 import os
 import pandas as pd
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 app = Flask(__name__)
 
 # Path to model inside PVC
@@ -22,6 +25,8 @@ def predict():
 
         data = request.get_json()
 
+        logging.info("Received type: %s", type(data))
+        logging.info("Received data: %s", data)
         print("DEBUG type:", type(data))
         print("DEBUG data:", data)
 

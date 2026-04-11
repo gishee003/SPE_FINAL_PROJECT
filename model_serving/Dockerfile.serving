@@ -10,4 +10,4 @@ COPY serve.py .
 
 EXPOSE 5002
 
-CMD ["python", "serve.py"]
+CMD ["python", "-u", "serve.py"]
