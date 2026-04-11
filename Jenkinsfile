@@ -111,6 +111,20 @@ pipeline {
                             "IsActiveMember": 1,
                             "EstimatedSalary": 45000.0,
                             "Exited": 0
+                        },
+                        {
+                            "CustomerId": 1234,
+                            "CreditScore": 600,
+                            "Geography": "Germany",
+                            "Gender": "Female",
+                            "Age": 35,
+                            "Tenure": 4,
+                            "Balance": 4000.0,
+                            "NumOfProducts": 1,
+                            "HasCrCard": 1,
+                            "IsActiveMember": 1,
+                            "EstimatedSalary": 60000.0,
+                            "Exited": 0
                         }]'
                     """, returnStdout: true).trim()
                     echo "Full Pipeline Response: ${response}"
