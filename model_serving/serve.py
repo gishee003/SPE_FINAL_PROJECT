@@ -22,7 +22,7 @@ def predict():
 
         data = request.get_json()
         if isinstance(data, dict):
-            df = pd.DataFrame([data])
+            df = pd.DataFrame([dict(data)])
         elif isinstance(data, list):
             df = pd.DataFrame(data)
         else:
