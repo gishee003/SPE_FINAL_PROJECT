@@ -4,7 +4,8 @@ services:
       context: ./data_ingestion
       dockerfile: Dockerfile.ingest
     command: python app.py
-    network_mode: "host"
+    ports:
+      - "5000:5000"
     environment:
       - SERVING_URL=http://${HOST_IP}:5002/predict
       - DRIFT_URL=http://${HOST_IP}:5003/drift
@@ -16,7 +17,8 @@ services:
       context: ./model_training
       dockerfile: Dockerfile.training
     command: python train.py
-    network_mode: "host"
+    ports:
+      - "5001:5001"
     volumes:
       - "/var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model"
     healthcheck:
@@ -30,7 +32,8 @@ services:
       context: ./model_serving
       dockerfile: Dockerfile.serving
     command: python serve.py
-    network_mode: "host"
+    ports:
+      - "5002:5002"
     depends_on:
       training:
         condition: service_healthy
@@ -42,7 +45,8 @@ services:
       context: ./drift_detection
       dockerfile: Dockerfile.drift
     command: python drift_detection.py
-    network_mode: "host"
+    ports:
+      - "5003:5003"
     depends_on:
       training:
         condition: service_healthy
