@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -19,7 +19,7 @@ def train_model():
         payload = request.get_json(silent=True)
         if not payload or "features" not in payload:
             return jsonify({"error": "Invalid payload"}), 500
-            
+
         print("Listing /data/churn-model:", os.listdir("./data/churn-model"))
 
         # Load dataset directly from mounted PVC
