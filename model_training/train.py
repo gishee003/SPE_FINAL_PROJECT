@@ -18,10 +18,15 @@ def train_model():
     try:
         # print("Listing /data/churn-model:", os.listdir("/data/churn-model"))
 
-        payload = request.get_json(silent=True)
-        if payload and isinstance(payload, list):
-            df = pd.DataFrame(payload)
+        if request.is_json:
+            payload = request.get_json(silent=True)
+            if payload and isinstance(payload, list):
+                df = pd.DataFrame(payload)
+            else:
+                # Empty or invalid JSON → fall back to CSV
+                df = pd.read_csv(data_path)
         else:
+            # No JSON header → fall back to CSV
             df = pd.read_csv(data_path)
 
         required_cols = {"Exited", "Geography", "Gender"}
