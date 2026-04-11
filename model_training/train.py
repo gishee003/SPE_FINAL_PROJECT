@@ -10,13 +10,13 @@ import os
 app = Flask(__name__)
 
 # Path where PVC is mounted
-data_path = "./data/churn-model/train.csv"
+data_path = "/data/churn-model/train.csv"
 pvc_path = "/data/churn-model"
 
 @app.route('/train', methods=['POST'])
 def train_model():
     try:
-        print("Listing /data/churn-model:", os.listdir("./data/churn-model"))
+        # print("Listing /data/churn-model:", os.listdir("/data/churn-model"))
 
         payload = request.get_json(silent=True)
         if payload and isinstance(payload, list):

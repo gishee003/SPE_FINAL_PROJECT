@@ -118,6 +118,8 @@ pipeline {
             }
             post {
                 always {
+                    sh 'docker compose -f docker-compose.test.yml ps -a'
+                    sh 'docker compose -f docker-compose.test.yml logs training'
                     sh 'docker compose -f docker-compose.test.yml down || true'
                 }
             }
