@@ -21,7 +21,7 @@ def predict():
             raise ValueError("Model not loaded")
 
         data = request.get_json()
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(data,index=[0])
 
         # Drop target if accidentally included
         if 'Exited' in df.columns:
