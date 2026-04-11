@@ -89,6 +89,11 @@ pipeline {
                         error "Model Training failed: ${trainStatus}"
                     }
 
+                    sh 'docker exec driftdetection-training-1 ls -l /data/churn-model'
+                    
+                    echo "Waiting for training artifacts..."
+                    sleep 10
+
                     // Full Pipeline Test
                     def response = sh(script: """
                         curl -s -X POST http://${hostIp}:5000/ingest \

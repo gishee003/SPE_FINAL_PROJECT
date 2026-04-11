@@ -68,6 +68,9 @@ def train_model():
         ref_path = os.path.join(pvc_path, "reference_distribution.pkl")
         with open(ref_path, "wb") as f:
             pickle.dump(reference, f)
+        
+        print("Saved model to", model_path)
+        print("Saved reference distribution to", ref_path)
 
         return jsonify({"status": "success", "message": "Model and reference saved to PVC"})
     
