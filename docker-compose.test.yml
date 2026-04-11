@@ -20,9 +20,9 @@ services:
     volumes:
       - "/var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model"
     healthcheck:
-      test: ["CMD", "test", "-f", "/data/churn-model/churn_model.pkl"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
       retries: 5
 
   serving:
