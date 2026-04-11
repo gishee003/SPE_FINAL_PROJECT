@@ -124,7 +124,7 @@ pipeline {
                             "HasCrCard": 1,
                             "IsActiveMember": 1,
                             "EstimatedSalary": 60000.0,
-                            "Exited": 0
+                            "Exited": 1
                         }]'
                     """, returnStdout: true).trim()
                     echo "Full Pipeline Response: ${response}"
