@@ -10,4 +10,4 @@ COPY train.py .
 
 EXPOSE 5001
 
-CMD ["python", "train.py"]
+CMD ["python", "-u", "train.py"]
