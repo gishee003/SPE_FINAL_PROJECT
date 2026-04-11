@@ -21,6 +21,10 @@ def predict():
             raise ValueError("Model not loaded")
 
         data = request.get_json()
+
+        print("DEBUG type:", type(data))
+        print("DEBUG data:", data)
+
         if isinstance(data, dict):
             df = pd.DataFrame([dict(data)])
         elif isinstance(data, list):
