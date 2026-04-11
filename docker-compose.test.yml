@@ -12,6 +12,7 @@ services:
       - "/var/lib/jenkins/workspace/Drift Detection/data/churn-model:/data/churn-model"
 
   training:
+    user: root
     build:
       context: ./model_training
       dockerfile: Dockerfile.training

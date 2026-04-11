@@ -16,6 +16,8 @@ pvc_path = "/data/churn-model"
 @app.route('/train', methods=['POST'])
 def train_model():
     try:
+        print("Listing /data/churn-model:", os.listdir("/data/churn-model"))
+
         # Load dataset directly from mounted PVC
         df = pd.read_csv(data_path)
 
