@@ -70,7 +70,16 @@ def predict():
                 "prediction": int(preds[i]),
                 "churn_probability": float(probs[i])
             })
-        log_event("predict", "success", {"customer_id": data.get("CustomerId")})
+            
+        if isinstance(data, dict):
+            customer_id = data.get("CustomerId")
+        elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict):
+            customer_id = data[0].get("CustomerId")
+        else:
+            customer_id = None
+
+        log_event("predict", "success", {"customer_id": customer_id})
+
         return jsonify({"results": results, "status": "success"})
     
     except Exception as e:
