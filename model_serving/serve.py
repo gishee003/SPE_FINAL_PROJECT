@@ -3,8 +3,16 @@ import pickle
 import os
 import pandas as pd
 
-import logging
+import logging, json
+
 logging.basicConfig(level=logging.INFO)
+
+def log_event(service, status, extra=None):
+    event = {"service": service, "status": status}
+    if extra:
+        event.update(extra)
+    logging.info(json.dumps(event))
+
 
 app = Flask(__name__)
 
@@ -62,10 +70,11 @@ def predict():
                 "prediction": int(preds[i]),
                 "churn_probability": float(probs[i])
             })
-
-        return jsonify({"status": "success", "results": results})
+        log_event("predict", "success", {"customer_id": data.get("CustomerId")})
+        return jsonify({"results": results, "status": "success"})
     
     except Exception as e:
+        log_event("predict", "error", {"error": str(e)})
         print("Model Serving error:", e)
         return jsonify({"error": str(e)}), 500
 

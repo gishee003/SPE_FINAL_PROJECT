@@ -11,6 +11,17 @@ app = Flask(__name__)
 # Path to PVC mount
 PVC_PATH = "/data/churn-model"
 
+import logging, json
+
+logging.basicConfig(level=logging.INFO)
+
+def log_event(service, status, extra=None):
+    event = {"service": service, "status": status}
+    if extra:
+        event.update(extra)
+    logging.info(json.dumps(event))
+
+
 # Load reference distributions
 reference_file = os.path.join(PVC_PATH, "reference_distribution.pkl")
 if os.path.exists(reference_file):
@@ -66,10 +77,12 @@ def detect_drift():
                 train_response = requests.post(training_url, json=data)
                 response["training_response"] = train_response.json()
 
+        log_event("drift", "success", {"drift_detected": drift_detected})
         return jsonify(response)
 
     except Exception as e:
         print("Drift detection error:", e)
+        log_event("drift", "error", {"error": str(e)})
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

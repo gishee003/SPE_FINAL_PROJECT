@@ -5,6 +5,16 @@ import os
 
 app = Flask(__name__)
 
+import logging, json
+
+logging.basicConfig(level=logging.INFO)
+
+def log_event(service, status, extra=None):
+    event = {"service": service, "status": status}
+    if extra:
+        event.update(extra)
+    logging.info(json.dumps(event))
+
 @app.route('/ingest', methods=['POST'])
 def ingest_data():
     try:
@@ -30,6 +40,8 @@ def ingest_data():
         drift_url = os.getenv("DRIFT_URL")
         drift_response = requests.post(drift_url, json=data)
 
+        log_event("ingest", "success", {"rows": len(data)})
+
         return jsonify({
             "status": "ingested",
             "rows": len(df),
@@ -37,6 +49,7 @@ def ingest_data():
             "drift_response": drift_response.json()
         })
     except Exception as e:
+        log_event("ingest", "error", {"error": str(e)})
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':

@@ -13,6 +13,16 @@ app = Flask(__name__)
 data_path = "/data/churn-model/train.csv"
 pvc_path = "/data/churn-model"
 
+import logging, json
+
+logging.basicConfig(level=logging.INFO)
+
+def log_event(service, status, extra=None):
+    event = {"service": service, "status": status}
+    if extra:
+        event.update(extra)
+    logging.info(json.dumps(event))
+
 @app.route('/train', methods=['POST'])
 def train_model():
     try:
@@ -77,10 +87,12 @@ def train_model():
         print("Saved model to", model_path)
         print("Saved reference distribution to", ref_path)
 
+        log_event("train", "success", {"model_version": "v1.0"})
         return jsonify({"status": "success", "message": "Model and reference saved to PVC"})
     
     except Exception as e:
         print("Model Training error:", e)
+        log_event("train", "error", {"error": str(e)})
         return jsonify({"error": str(e)}), 500
 
 @app.route('/health', methods=['GET'])
