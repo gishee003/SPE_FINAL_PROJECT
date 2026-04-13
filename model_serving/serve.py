@@ -5,7 +5,10 @@ import pandas as pd
 
 import logging, json
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s'   # ONLY print message (no INFO:root prefix)
+)
 
 def log_event(service, status, extra=None):
     event = {"service": service, "status": status}
