@@ -1,0 +1,26 @@
+---
+- name: Include encrypted secrets
+  ansible.builtin.include_vars: vars/secrets.yml
+  no_log: true
+  tags: [never, elk]
+
+- name: Ensure ELK credentials exist in Ansible Vault vars
+  ansible.builtin.assert:
+    that:
+      - elk_username | length > 0
+      - elk_password | length > 0
+    fail_msg: >-
+      ELK credentials not found in `ansible/vars/secrets.yml` (expected `elk_username` and `elk_password`).
+  tags: [never, elk]
+
+- name: Create/update Kubernetes secret for ELK credentials
+  ansible.builtin.shell: |
+    set -euo pipefail
+    kubectl -n "{{ elk_k8s_namespace }}" create secret generic "{{ elk_k8s_secret_name }}" \
+      --from-literal=username="{{ elk_username }}" \
+      --from-literal=password="{{ elk_password }}" \
+      --dry-run=client -o yaml | kubectl apply -f -
+  args:
+    executable: /bin/bash
+  no_log: true
+  tags: [never, elk]
