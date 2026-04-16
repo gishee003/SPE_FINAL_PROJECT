@@ -89,7 +89,7 @@ pipeline {
                         error "Model Training failed: ${trainStatus}"
                     }
 
-                    sh 'docker exec driftdetection-training-1 ls -l /data/churn-model'
+                    // sh 'docker exec driftdetection-training-1 ls -l /data/churn-model'
                     
                     echo "Waiting for training artifacts..."
                     sleep 10
@@ -221,12 +221,13 @@ pipeline {
         }
 
         stage('ELK Dashboard Setup') {
+            environment {
+                // Force kubectl to use the Jenkins-specific config
+                MINIKUBE_HOME='/home/kirti'
+                KUBECONFIG = '/var/lib/jenkins/.kube/config'
+            }
             steps {
                 sh '''
-
-		    export MINIKUBE_HOME=/home/athira
-                    export KUBECONFIG=/home/athira/.kube/config
-
                     echo "Setting up ELK + Kibana dashboard..."
 
                     # Apply ELK resources explicitly and force a fresh dashboard import each run
