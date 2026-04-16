@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kibana-setup
+  labels:
+    app: kibana-setup
+spec:
+  template:
+    spec:
+      volumes:
+      - name: dashboard
+        configMap:
+          name: kibana-dashboard-config
+      containers:
+      - name: setup
+        image: curlimages/curl:7.85.0
+        volumeMounts:
+        - name: dashboard
+          mountPath: /mnt/dashboard
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Wait for Kibana to be ready
+          echo "Waiting for Kibana..."
+          until curl -s http://elasticsearch:9200; do echo "Waiting for ES..."; sleep 2; done
+          until curl -s http://kibana-service:5601/api/status | grep -q "available"; do 
+            echo "Waiting for Kibana API..."; 
+            sleep 5; 
+          done
+          
+          echo "Kibana is ready. Cleaning up old setup..."
+          
+          # Delete any existing objects with the same IDs to avoid conflicts
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/index-pattern/project-index-pattern" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/total-events" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/failure-events" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/logs-by-service" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/status-breakdown" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/outcome-by-service" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/events-over-time" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/top-error-messages" -H 'kbn-xsrf: true'
+          curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/dashboard/drift-overview" -H 'kbn-xsrf: true'
+          
+          echo "Importing Unified Project Dashboard..."
+          
+          # Import Unified System (Pattern + Viz + Dashboard)
+          # Use overwrite=true and create_new_id=false to enforce our IDs
+          curl -s -X POST "http://kibana-service:5601/api/saved_objects/_import?overwrite=true" \
+            -H 'kbn-xsrf: true' \
+            --form file=@/mnt/dashboard/dashboard.ndjson
+
+          echo "Setting default index pattern..."
+          curl -s -X POST "http://kibana-service:5601/api/index_patterns/default" \
+            -H 'kbn-xsrf: true' \
+            -H 'Content-Type: application/json' \
+            -d '{"index_pattern_id":"project-index-pattern","force":true}'
+          
+          echo "Done!"
+      restartPolicy: OnFailure
+  backoffLimit: 10
