@@ -19,11 +19,15 @@ logging.basicConfig(
 )
 
 def log_event(service, status, extra=None):
-    event = {"service": service, "status": status}
+    # Emit ECS-compatible fields to avoid collisions with reserved mappings.
+    event = {
+        "service": {"name": service},
+        "event": {"outcome": "success" if status == "success" else "failure"},
+        "app": {"status": status}
+    }
     if extra:
         event.update(extra)
     logging.info(json.dumps(event))
-
 
 # Load reference distributions
 reference_file = os.path.join(PVC_PATH, "reference_distribution.pkl")

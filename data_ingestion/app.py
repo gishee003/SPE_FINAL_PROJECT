@@ -7,13 +7,21 @@ app = Flask(__name__)
 
 import logging, json
 
+# --- Structured Logging Setup ---
+# We use a custom format to ensure ONLY the JSON string is printed
 logging.basicConfig(
     level=logging.INFO,
-    format='%(message)s'   # ONLY print message (no INFO:root prefix)
+    format='%(message)s',
+    stream=sys.stdout
 )
 
 def log_event(service, status, extra=None):
-    event = {"service": service, "status": status}
+    # Emit ECS-compatible fields to avoid collisions with reserved mappings.
+    event = {
+        "service": {"name": service},
+        "event": {"outcome": "success" if status == "success" else "failure"},
+        "app": {"status": status}
+    }
     if extra:
         event.update(extra)
     logging.info(json.dumps(event))
