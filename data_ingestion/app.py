@@ -79,26 +79,26 @@ def ingest_data():
         serving_url = os.getenv("SERVING_URL")
         serving_started_perf = time.perf_counter()
         serving_response = requests.post(serving_url, json=data, timeout=5)
-        serving_latency_ms = int((time.perf_counter() - serving_started_perf) * 1000)
+        serving_duration_ms = int((time.perf_counter() - serving_started_perf) * 1000)
 
         # Forward to drift detection
         drift_url = os.getenv("DRIFT_URL")
         drift_started_perf = time.perf_counter()
         drift_response = requests.post(drift_url, json=data)
-        drift_latency_ms = int((time.perf_counter() - drift_started_perf) * 1000)
+        drift_duration_ms = int((time.perf_counter() - drift_started_perf) * 1000)
 
-        total_latency_ms = int((time.perf_counter() - started_perf) * 1000)
+        total_duration_ms = int((time.perf_counter() - started_perf) * 1000)
 
         log_event(
             "ingest",
             "success",
             extra={
                 "rows": len(data) if isinstance(data, list) else 1,
-                "latency_ms": total_latency_ms,
+                "duration_ms": total_duration_ms,
                 "ingest": {"source": ingest_source},
                 "dependencies": {
-                    "serving_latency_ms": serving_latency_ms,
-                    "drift_latency_ms": drift_latency_ms,
+                    "serving_duration_ms": serving_duration_ms,
+                    "drift_duration_ms": drift_duration_ms,
                 },
                 "http": {"request": {"method": request.method, "path": request.path}},
             },

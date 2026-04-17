@@ -58,7 +58,7 @@ def detect_drift():
                 "success",
                 extra={
                     "drift": {"drift_detected": False},
-                    "latency_ms": int((time.perf_counter() - started_perf) * 1000),
+                    "duration_ms": int((time.perf_counter() - started_perf) * 1000),
                     "http": {"request": {"method": request.method, "path": request.path}},
                     "error": {
                         "type": "reference_not_found",
@@ -166,7 +166,7 @@ def detect_drift():
                 train_response = requests.post(training_url, json=data)
                 response["training_response"] = train_response.json()
 
-        total_latency_ms = int((time.perf_counter() - started_perf) * 1000)
+        total_duration_ms = int((time.perf_counter() - started_perf) * 1000)
 
         log_event(
             "drift",
@@ -176,7 +176,7 @@ def detect_drift():
                     "drift_detected": drift_detected,
                     "feature_drifted_count": sum(1 for fe in feature_events if fe.get("drifted")),
                 },
-                "latency_ms": total_latency_ms,
+                "duration_ms": total_duration_ms,
                 "http": {"request": {"method": request.method, "path": request.path}},
             },
             event_type="drift_overall",
@@ -189,7 +189,7 @@ def detect_drift():
                 "success",
                 extra={
                     "drift": fe,
-                    "latency_ms": total_latency_ms,
+                    "duration_ms": total_duration_ms,
                     "http": {"request": {"method": request.method, "path": request.path}},
                 },
                 event_type="feature_drift",
@@ -208,7 +208,7 @@ def detect_drift():
                     "message": str(e),
                 },
                 "http": {"request": {"method": request.method, "path": request.path}},
-                "latency_ms": int((time.perf_counter() - started_perf) * 1000)
+                "duration_ms": int((time.perf_counter() - started_perf) * 1000)
                 if "started_perf" in locals()
                 else None,
             },

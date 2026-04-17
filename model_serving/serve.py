@@ -107,7 +107,7 @@ def predict():
         pred_values = preds.tolist() if hasattr(preds, "tolist") else preds
         prob_values = probs.tolist() if hasattr(probs, "tolist") else probs
 
-        latency_ms = int((time.perf_counter() - request_started_perf) * 1000)
+        duration_ms = int((time.perf_counter() - request_started_perf) * 1000)
         client_source = (
             request.headers.get("X-Client-Source")
             or request.headers.get("x-client-source")
@@ -119,7 +119,7 @@ def predict():
             "success",
             extra={
                 "customer_id": customer_id,
-                "latency_ms": latency_ms,
+                "duration_ms": duration_ms,
                 "client": {"source": client_source},
                 "http": {"request": {"method": request.method, "path": request.path}},
                 "prediction": {
@@ -133,7 +133,7 @@ def predict():
         return jsonify({"results": results, "status": "success"})
     
     except Exception as e:
-        latency_ms = int((time.perf_counter() - request_started_perf) * 1000)
+        duration_ms = int((time.perf_counter() - request_started_perf) * 1000)
 
         err_type = "serving_exception"
         err_code = "unhandled_exception"
@@ -151,7 +151,7 @@ def predict():
             "error",
             extra={
                 "error": {"type": err_type, "code": err_code, "message": err_message},
-                "latency_ms": latency_ms,
+                "duration_ms": duration_ms,
                 "http": {"request": {"method": request.method, "path": request.path}},
             },
             event_type="request",
