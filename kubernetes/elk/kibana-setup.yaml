@@ -82,10 +82,18 @@ spec:
             -d '{"index_pattern_id":"project-index-pattern","force":true}'
 
           echo "Waiting for data in project-logs-*..."
-          until curl -s "http://elasticsearch:9200/project-logs-*/_count" | grep -q "\"count\":[1-9]"; do
+          found_logs=false
+          for _ in $(seq 1 60); do
+            if curl -s "http://elasticsearch:9200/project-logs-*/_count" | grep -q "\"count\":[1-9]"; then
+              found_logs=true
+              break
+            fi
             echo "Still waiting for some logs to be indexed..."
             sleep 5
           done
+          if [ "$found_logs" != "true" ]; then
+            echo "WARN: No project logs indexed yet; continuing dashboard setup."
+          fi
 
           echo "Refreshing Index Pattern fields..."
           curl -s -X POST "http://kibana-service:5601/api/index_patterns/index_pattern/project-index-pattern/fields" \

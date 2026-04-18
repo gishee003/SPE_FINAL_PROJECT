@@ -29,13 +29,11 @@ data:
           fields: ["message"]
           target: ""
           overwrite_keys: true
-          ignore_failure: true
           add_error_key: false
       - decode_json_fields:
           fields: ["log"]
           target: ""
           overwrite_keys: true
-          ignore_failure: true
           add_error_key: false
 
     output.elasticsearch:
