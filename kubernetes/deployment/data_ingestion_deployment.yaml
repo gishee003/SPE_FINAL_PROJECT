@@ -4,6 +4,11 @@ metadata:
   name: data-ingestion
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: data-ingestion
@@ -24,10 +29,23 @@ spec:
             memory: "512Mi"
         ports:
         - containerPort: 5000
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
         env:
-        - name: TRAINING_URL
-          value: http://model-training-service.default.svc.cluster.local:5001/train
-          
         - name: SERVING_URL
           value: http://model-serving-service.default.svc.cluster.local:5002/predict
 

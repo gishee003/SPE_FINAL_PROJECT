@@ -4,6 +4,11 @@ metadata:
   name: model-training
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: model-training
@@ -24,6 +29,14 @@ spec:
             memory: "1Gi"    # 1 Gigabyte
         ports:
         - containerPort: 5001
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
         volumeMounts:                
         - name: churn-model-storage
           mountPath: /data/churn-model 

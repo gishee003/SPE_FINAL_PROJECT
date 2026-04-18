@@ -62,7 +62,7 @@ flowchart LR
 | APIs | Python **Flask** |
 | ML | **pandas**, **numpy**, **scipy**, **scikit-learn** |
 | Containers | **Docker** |
-| Orchestration | **Kubernetes** (Deployments, Services, PV/PVC, **HPA** on ingestion, serving, and drift — not on training) |
+| Orchestration | **Kubernetes** (Deployments with **rolling updates** + `/health` readiness, Services, PV/PVC, **HPA** on ingestion, serving, drift — not on training) |
 | CI/CD | **Jenkins** (`Jenkinsfile`: Ansible, unit tests, compose integration, image build/push, K8s deploy, ELK setup) |
 | Infrastructure as code | **Ansible** (`ansible/site.yml`, Vault-encrypted secrets) |
 | Logs / dashboards | **Elasticsearch 7.17**, **Filebeat** (JSON container logs → `project-logs-*`), **Kibana** (imported dashboards) |
@@ -336,6 +336,41 @@ kubectl apply -f kubernetes/pvc.yaml
 kubectl apply -f kubernetes/deployment/
 kubectl apply -f kubernetes/service/
 ```
+
+**Live patching (rolling updates)** — Kubernetes **rolling updates** on every app `Deployment` (`kubernetes/deployment/*.yaml`):
+
+- **`readinessProbe`** on **`GET /health`** (all four services on ports **5000–5003**) so a pod is not marked **Ready** until Flask responds; the Service only routes traffic to Ready endpoints.
+- **`data-ingestion`** (no PVC): **`maxUnavailable: 0`**, **`maxSurge: 1`** — a new pod can start while old pods still serve traffic, then old pods are drained after the new one is Ready (**no deliberate overlap requirement on storage**).
+- **`model-serving`**, **`drift-detection`**, **`model-training`** (share **`ReadWriteOnce`** PVC): **`maxSurge: 0`**, **`maxUnavailable: 1`** — only one pod may hold the volume at a time on typical storage drivers, so the rollout replaces pods **one after another**. There can be a **short window** with no Ready endpoint for that Deployment (often a few seconds); that is the usual trade-off with RWO + a single volume.
+- **`livenessProbe`** on **data-ingestion**, **model-serving**, and **drift-detection** only. **Model training** has **readiness only** (no liveness): long **`POST /train`** is heavy; the app uses **`threaded=True`** so **`/health`** stays responsive during training, and omitting liveness avoids killing the pod mid-job.
+
+Patch to a new image (example — replace tag with yours):
+
+```bash
+kubectl set image deployment/data-ingestion data-ingestion=kirtinigam003/data_ingestion:newtag
+kubectl set image deployment/model-serving model-serving=kirtinigam003/model_serving:newtag
+kubectl set image deployment/drift-detection drift-detection=kirtinigam003/drift_detection:newtag
+kubectl set image deployment/model-training model-training=kirtinigam003/model_training:newtag
+```
+
+Watch the rollout finish (new pods Ready, old pods terminated):
+
+```bash
+kubectl rollout status deployment/data-ingestion
+kubectl rollout status deployment/model-serving
+kubectl rollout status deployment/drift-detection
+kubectl rollout status deployment/model-training
+```
+
+Inspect rollout history and roll back if needed:
+
+```bash
+kubectl rollout history deployment/model-serving
+kubectl rollout undo deployment/model-serving
+kubectl describe deployment model-serving | tail -n 25
+```
+
+While **data-ingestion** rolls out (multiple replicas + surge), traffic can stay on older pods until new ones are Ready. For **PVC-backed** services with a **single replica**, expect a brief gap when the old pod terminates before the new one becomes Ready.
 
 **Horizontal Pod Autoscaler (HPA)** — scales **data-ingestion**, **model-serving**, and **drift-detection** only (`kubernetes/hpa.yaml`). **Model training** is intentionally left at a fixed replica count so long-running training jobs are not duplicated by the autoscaler.
 

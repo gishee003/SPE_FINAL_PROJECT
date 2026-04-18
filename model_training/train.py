@@ -245,4 +245,5 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    # threaded=True so /health stays responsive during long synchronous POST /train (Kubernetes probes).
+    app.run(host='0.0.0.0', port=5001, threaded=True)

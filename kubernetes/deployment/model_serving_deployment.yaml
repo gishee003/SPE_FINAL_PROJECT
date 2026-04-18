@@ -4,6 +4,12 @@ metadata:
   name: model-serving
 spec:
   replicas: 1
+  # RWO PVC: only one pod can mount the volume; avoid two pods during rollout.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: model-serving
@@ -24,6 +30,22 @@ spec:
             memory: "512Mi"
         ports:
         - containerPort: 5002
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
         volumeMounts:                
         - name: churn-model-storage
           mountPath: /data/churn-model 
