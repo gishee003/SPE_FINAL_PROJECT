@@ -198,6 +198,8 @@ def train_model():
             extra={
                 "training_run_id": training_run_id,
                 "training_completed_at": completed_at,
+                # `duration_ms` matches other services + Kibana duration panels.
+                "duration_ms": training_duration_ms,
                 "training_duration_ms": training_duration_ms,
                 "validation_accuracy": validation_accuracy,
                 "model_version": "v1.0",

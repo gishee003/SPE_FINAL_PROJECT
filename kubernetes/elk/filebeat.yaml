@@ -41,6 +41,14 @@ data:
 
     setup.template.name: "project-logs"
     setup.template.pattern: "project-logs-*"
+    setup.template.overwrite: true
+    setup.template.append_fields:
+      - name: duration_ms
+        type: long
+      - name: training_duration_ms
+        type: long
+      - name: drift_p_value
+        type: double
     setup.ilm.enabled: false
 
     logging.level: info

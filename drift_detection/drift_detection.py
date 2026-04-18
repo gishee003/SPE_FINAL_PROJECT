@@ -184,14 +184,19 @@ def detect_drift():
 
         # Emit one log event per feature drift (used for charts).
         for fe in feature_events:
+            extra = {
+                "drift": fe,
+                "duration_ms": total_duration_ms,
+                "http": {"request": {"method": request.method, "path": request.path}},
+            }
+            # Root-level float for Kibana avg; avoids polymorphic `drift.*` mapping issues.
+            pv = fe.get("p_value")
+            if pv is not None:
+                extra["drift_p_value"] = float(pv)
             log_event(
                 "drift",
                 "success",
-                extra={
-                    "drift": fe,
-                    "duration_ms": total_duration_ms,
-                    "http": {"request": {"method": request.method, "path": request.path}},
-                },
+                extra=extra,
                 event_type="feature_drift",
             )
 
