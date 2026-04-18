@@ -49,7 +49,6 @@ spec:
         - name: SERVING_URL
           value: http://model-serving-service.default.svc.cluster.local:5002/predict
 
-        # Drift detection microservice endpoint
         - name: DRIFT_URL
           value: http://drift-detection-service.default.svc.cluster.local:5003/drift
 

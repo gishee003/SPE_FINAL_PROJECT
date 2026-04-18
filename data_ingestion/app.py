@@ -9,8 +9,6 @@ app = Flask(__name__)
 
 import logging, json
 
-# --- Structured Logging Setup ---
-# We use a custom format to ensure ONLY the JSON string is printed
 logging.basicConfig(
     level=logging.INFO,
     format='%(message)s',
@@ -18,7 +16,6 @@ logging.basicConfig(
 )
 
 def log_event(service, status, extra=None, event_type="request"):
-    # Emit ECS-compatible fields to avoid collisions with reserved mappings.
     event = {
         "service": {"name": service},
         "event": {
@@ -50,7 +47,6 @@ def ingest_data():
         if isinstance(data, dict):
             ingest_source = data.get("source", ingest_source)
 
-        # Bank Churn dataset schema validation
         required_columns = [
             'CustomerId', 'CreditScore', 'Geography', 'Gender',
             'Age', 'Tenure', 'Balance', 'NumOfProducts',
@@ -75,13 +71,11 @@ def ingest_data():
             )
             return jsonify({"error": f"Missing columns: {missing}"}), 400
 
-        # Forward to serving for predictions
         serving_url = os.getenv("SERVING_URL")
         serving_started_perf = time.perf_counter()
         serving_response = requests.post(serving_url, json=data, timeout=5)
         serving_duration_ms = int((time.perf_counter() - serving_started_perf) * 1000)
 
-        # Forward to drift detection
         drift_url = os.getenv("DRIFT_URL")
         drift_started_perf = time.perf_counter()
         drift_response = requests.post(drift_url, json=data)

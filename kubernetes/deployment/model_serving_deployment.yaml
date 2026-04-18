@@ -4,7 +4,6 @@ metadata:
   name: model-serving
 spec:
   replicas: 1
-  # RWO PVC: only one pod can mount the volume; avoid two pods during rollout.
   strategy:
     type: RollingUpdate
     rollingUpdate:

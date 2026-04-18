@@ -10,7 +10,6 @@ data:
       providers:
         - type: kubernetes
           node: ${NODE_NAME}
-          # Only ship logs from this project's pods (not kube-system, etc.).
           templates:
             - condition:
                 regexp:
@@ -26,7 +25,6 @@ data:
           matchers:
             - logs_path:
                 logs_path: "/var/log/containers/"
-      # App stdout is JSON; ignore non-JSON lines without writing error.* into ES.
       - decode_json_fields:
           fields: ["message"]
           target: ""

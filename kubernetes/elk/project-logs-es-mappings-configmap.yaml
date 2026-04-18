@@ -1,5 +1,3 @@
-# Elasticsearch mapping augment for project-logs-* — fields referenced by Kibana dashboards
-# (kibana-dashboard-config.yaml) and structured logs from the four microservices.
 apiVersion: v1
 kind: ConfigMap
 metadata:

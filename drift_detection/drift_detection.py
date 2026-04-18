@@ -9,7 +9,6 @@ import time
 
 app = Flask(__name__)
 
-# Path to PVC mount
 PVC_PATH = "/data/churn-model"
 
 import logging, json
@@ -20,7 +19,6 @@ logging.basicConfig(
 )
 
 def log_event(service, status, extra=None, event_type="request"):
-    # Emit ECS-compatible fields to avoid collisions with reserved mappings.
     event = {
         "service": {"name": service},
         "event": {
@@ -37,7 +35,6 @@ def log_event(service, status, extra=None, event_type="request"):
                 event[k] = v
     logging.info(json.dumps(event))
 
-# Load reference distributions
 reference_file = os.path.join(PVC_PATH, "reference_distribution.pkl")
 if os.path.exists(reference_file):
     with open(reference_file, "rb") as f:
@@ -78,7 +75,6 @@ def detect_drift():
         drift_report = {}
         feature_events = []
 
-        # 1. Data Drift: KS test for each numeric feature
         for feature in reference["feature_means"].keys():
             if feature in df.columns:
                 stat, p_value = ks_2samp(
@@ -98,7 +94,6 @@ def detect_drift():
                 live_mean = float(df[feature].mean())
                 live_std = float(df[feature].std())
 
-                # Confidence: higher when p-value is smaller.
                 confidence = float(max(0.0, min(1.0, 1.0 - p_value)))
                 if p_value <= 0.01:
                     severity = "high"
@@ -121,7 +116,6 @@ def detect_drift():
                     }
                 )
 
-        # 2. Label Drift: compare Exited distribution
         if "Exited" in df.columns:
             new_dist = df["Exited"].value_counts(normalize=True).to_dict()
             max_abs_diff = max(
@@ -153,13 +147,11 @@ def detect_drift():
                 }
             )
 
-        # 3. Concept Drift: placeholder
         drift_report["concept_drift"] = "monitor prediction accuracy over time"
 
         drift_detected = any(v is True for v in drift_report.values())
         response = {"drift_detected": drift_detected, "details": drift_report}
 
-        # Trigger retraining if drift detected
         if drift_detected:
             training_url = os.getenv("TRAINING_URL")
             if training_url:
@@ -182,15 +174,12 @@ def detect_drift():
             event_type="drift_overall",
         )
 
-        # Emit one log event per feature drift (used for charts).
         for fe in feature_events:
             extra = {
                 "drift": fe,
                 "duration_ms": total_duration_ms,
                 "http": {"request": {"method": request.method, "path": request.path}},
             }
-            # Root-level metric for Kibana avg; always present on feature_drift rows so the
-            # field stays in the index pattern (null for e.g. label drift with no p-value).
             pv = fe.get("p_value")
             extra["drift_p_value"] = float(pv) if pv is not None else None
             log_event(

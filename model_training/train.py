@@ -16,7 +16,6 @@ import psutil
 
 app = Flask(__name__)
 
-# Path where PVC is mounted
 data_path = "/data/churn-model/train.csv"
 pvc_path = "/data/churn-model"
 
@@ -28,7 +27,6 @@ logging.basicConfig(
 )
 
 def log_event(service, status, extra=None, event_type="request"):
-    # Emit ECS-compatible fields to avoid collisions with reserved mappings.
     event = {
         "service": {"name": service},
         "event": {
@@ -55,7 +53,6 @@ def train_model():
     samples = []
     sampler_thread = None
 
-    # Training start event (useful for timelines).
     log_event(
         "train",
         "success",
@@ -69,10 +66,8 @@ def train_model():
             if payload and isinstance(payload, list):
                 df = pd.DataFrame(payload)
             else:
-                # Empty or invalid JSON → fall back to CSV
                 df = pd.read_csv(data_path)
         else:
-            # No JSON header → fall back to CSV
             df = pd.read_csv(data_path)
 
         required_cols = {"Exited", "Geography", "Gender"}
@@ -92,11 +87,9 @@ def train_model():
             )
             return jsonify({"error": "Dataset missing required columns"}), 500
 
-        # Features and target
         X = df.drop(columns=["Exited", "Surname", "id"], errors="ignore")
         y = df["Exited"]
 
-        # Identify categorical and numeric columns
         categorical = ["Geography", "Gender"]
         numeric = [col for col in X.columns if col not in categorical]
 
@@ -114,7 +107,6 @@ def train_model():
             ]
         )
 
-        # Start resource sampling before training begins.
         proc = psutil.Process(os.getpid())
         proc.cpu_percent(interval=None)  # initialize CPU percent
 
@@ -139,8 +131,6 @@ def train_model():
         sampler_thread = threading.Thread(target=sample_resources, daemon=True)
         sampler_thread.start()
 
-        # Train/validate split for accuracy trends.
-        # For very small datasets, stratified splitting can fail.
         can_stratify = (
             (y.nunique() > 1)
             and (y.value_counts().min() >= 2)
@@ -162,12 +152,10 @@ def train_model():
         if sampler_thread:
             sampler_thread.join(timeout=5)
 
-        # Save model to PVC (pipeline includes preprocessing!)
         model_path = os.path.join(pvc_path, "churn_model.pkl")
         with open(model_path, "wb") as f:
             pickle.dump(model, f)
 
-        # Save reference distributions to PVC
         reference = {
             "feature_means": X[numeric].mean().to_dict(),
             "feature_stds": X[numeric].std().to_dict(),
@@ -180,7 +168,6 @@ def train_model():
         completed_at = datetime.now(timezone.utc).isoformat()
         training_duration_ms = int((time.perf_counter() - start_perf) * 1000)
 
-        # Compute summary stats from samples.
         if samples:
             max_rss_bytes = max(s[2] for s in samples)
             avg_rss_bytes = sum(s[2] for s in samples) / len(samples)
@@ -198,7 +185,6 @@ def train_model():
             extra={
                 "training_run_id": training_run_id,
                 "training_completed_at": completed_at,
-                # `duration_ms` matches other services + Kibana duration panels.
                 "duration_ms": training_duration_ms,
                 "training_duration_ms": training_duration_ms,
                 "validation_accuracy": validation_accuracy,
@@ -245,5 +231,4 @@ def health():
     return jsonify({"status": "ok"}), 200
 
 if __name__ == '__main__':
-    # threaded=True so /health stays responsive during long synchronous POST /train (Kubernetes probes).
     app.run(host='0.0.0.0', port=5001, threaded=True)

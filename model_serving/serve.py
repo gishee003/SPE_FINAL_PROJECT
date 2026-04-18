@@ -12,7 +12,6 @@ logging.basicConfig(
 )
 
 def log_event(service, status, extra=None, event_type="request"):
-    # Emit ECS-compatible fields to avoid collisions with reserved mappings.
     event = {
         "service": {"name": service},
         "event": {
@@ -22,7 +21,6 @@ def log_event(service, status, extra=None, event_type="request"):
         "app": {"status": status},
     }
     if extra:
-        # Deep-merge only the nested `event` object if provided.
         for k, v in extra.items():
             if k == "event" and isinstance(v, dict):
                 event["event"].update(v)
@@ -33,10 +31,8 @@ def log_event(service, status, extra=None, event_type="request"):
 
 app = Flask(__name__)
 
-# Path to model inside PVC
 model_path = "/data/churn-model/churn_model.pkl"
 
-# Load model at startup
 model = None
 if os.path.exists(model_path):
     with open(model_path, "rb") as f:
@@ -71,11 +67,9 @@ def predict():
             )
             return jsonify({"error": "Invalid input format"}), 400
 
-        # Drop target if accidentally included
         if 'Exited' in df.columns:
             df = df.drop(columns=['Exited'])
 
-        # Ensure required Bank Churn features exist
         required_features = [
             "CreditScore", "Geography", "Gender", "Age", "Tenure",
             "Balance", "NumOfProducts", "HasCrCard", "IsActiveMember",
@@ -85,7 +79,6 @@ def predict():
             if feat not in df.columns:
                 raise ValueError(f"Missing required feature: {feat}")
 
-        # Make predictions using the full pipeline (preprocessor + classifier)
         preds = model.predict(df)
         probs = model.predict_proba(df)[:, 1]
 

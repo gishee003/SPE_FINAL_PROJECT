@@ -1,7 +1,6 @@
 import pytest
 import requests
 
-# URLs (Assuming Docker Compose service names or localhost for local testing)
 INGEST_URL = "http://localhost:5000/ingest"
 TRAIN_URL = "http://localhost:5001/train"
 PREDICT_URL = "http://localhost:5002/predict"
@@ -43,7 +42,6 @@ def setup_initial_model():
     requests.post(TRAIN_URL, json=sample_data)
 
 def test_full_pipeline_flow():
-    # 1. Test Ingestion (which triggers Predict and Drift)
     payload = [
         {
             "CustomerId": 101,
@@ -68,7 +66,6 @@ def test_full_pipeline_flow():
     assert "drift_response" in data
 
 def test_drift_triggers_retraining():
-    # 2. Simulate Drift (Drastic change in Age/Balance)
     drift_payload = [
         {
             "CustomerId": 999,
@@ -86,11 +83,9 @@ def test_drift_triggers_retraining():
         }
     ]
     
-    # Call Drift service directly
     response = requests.post(DRIFT_URL, json=drift_payload)
     assert response.status_code == 200
     
-    # If drift is detected, it should return training_response
     if response.json().get("drift_detected"):
         assert "training_response" in response.json()
         assert response.json()["training_response"]["status"] in ["success", "retraining_started"]

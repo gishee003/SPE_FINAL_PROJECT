@@ -1,7 +1,6 @@
 pipeline {
     agent any
     environment {
-        // Use the ID you set in Jenkins Credentials for the kubeconfig file
         HOST_IP = sh(script: "hostname -I | awk '{print \$1}'", returnStdout: true).trim()
         KUBECONFIG = credentials('kubeconfig') 
     }
@@ -9,13 +8,10 @@ pipeline {
         stage('Environment Setup') {
             steps {
                 withCredentials([string(credentialsId: 'ansible-vault-pass', variable: 'VAULT_PW')]) {
-                    // Create a temporary file for the password
                     sh 'echo $VAULT_PW > .vault_pass'
                     
-                    // Run Ansible using the password file
                     sh 'ansible-playbook -i ansible/inventory.ini ansible/site.yml --vault-password-file .vault_pass'
                     
-                    // Clean up the password file immediately
                     sh 'rm .vault_pass'
                 }
             }
@@ -50,7 +46,6 @@ pipeline {
                     echo "Waiting for Flask services to initialize..."
                     sleep 15
 
-                    // Bootstrap Training
                     echo "Training baseline model..."
                     def trainStatus = sh(script: """
                         curl -s -X POST http://${hostIp}:5001/train \
@@ -89,12 +84,10 @@ pipeline {
                         error "Model Training failed: ${trainStatus}"
                     }
 
-                    // sh 'docker exec driftdetection-training-1 ls -l /data/churn-model'
                     
                     echo "Waiting for training artifacts..."
                     sleep 10
 
-                    // Full Pipeline Test
                     def response = sh(script: """
                         curl -s -X POST http://${hostIp}:5000/ingest \
                         -H 'Content-Type: application/json' \
@@ -191,19 +184,15 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             environment {
-                // Force kubectl to use the Jenkins-specific config
                 KUBECONFIG = '/var/lib/jenkins/.kube/config'
             }
             steps {
                 sh '''
                     echo "Starting Deployment..."
-                    # Fix the paths inside the config for this session
                     sed -i 's|/home/kirti/.minikube|/var/lib/jenkins/.minikube|g' /var/lib/jenkins/.kube/config
                     
                     kubectl cluster-info
 
-                    # 2. Deploy using --validate=false to skip the network check that keeps failing
-                    # This bypasses the 'connection refused' error on the openapi schema
                     echo "Applying Kubernetes manifests..."
                     kubectl apply -f kubernetes/pv.yaml --validate=false
                     kubectl apply -f kubernetes/pvc.yaml --validate=false
@@ -213,7 +202,6 @@ pipeline {
 
                     kubectl apply -f kubernetes/hpa.yaml --validate=false
 
-                    # 3. Show current status
                     echo "✅ Deployment commands sent successfully."
                     kubectl get pods
                 '''
@@ -222,7 +210,6 @@ pipeline {
 
         stage('ELK Dashboard Setup') {
             environment {
-                // Force kubectl to use the Jenkins-specific config
                 MINIKUBE_HOME='/home/kirti'
                 KUBECONFIG = '/var/lib/jenkins/.kube/config'
             }
@@ -230,14 +217,12 @@ pipeline {
                 sh '''
                     echo "Setting up ELK + Kibana dashboard..."
 
-                    # Apply ELK resources explicitly and force a fresh dashboard import each run
                     kubectl apply -f kubernetes/elk/elasticsearch.yaml --validate=false
                     kubectl apply -f kubernetes/elk/filebeat.yaml --validate=false
                     kubectl apply -f kubernetes/elk/kibana.yaml --validate=false
                     kubectl apply -f kubernetes/elk/project-logs-es-mappings-configmap.yaml --validate=false
                     kubectl apply -f kubernetes/elk/kibana-dashboard-config.yaml --validate=false
 
-                    # Jobs are immutable; recreate setup job every deployment
                     kubectl delete job kibana-setup --ignore-not-found=true
                     kubectl apply -f kubernetes/elk/kibana-setup.yaml --validate=false
                     kubectl wait --for=condition=complete job/kibana-setup --timeout=180s

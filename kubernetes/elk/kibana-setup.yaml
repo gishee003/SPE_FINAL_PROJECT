@@ -31,7 +31,6 @@ spec:
           echo "Waiting for Elasticsearch..."
           until curl -s http://elasticsearch:9200; do echo "Waiting for ES..."; sleep 2; done
 
-          # Mapping augment from ConfigMap (see project-logs-es-mappings-configmap.yaml).
           cp /mnt/es-mappings/mappings.json /tmp/pl-mappings.json
 
           echo "Installing Elasticsearch index template project-logs-app-fields..."
@@ -53,7 +52,6 @@ spec:
               --data-binary @/tmp/pl-mappings.json || true
           done
 
-          # Wait for Kibana to be ready
           echo "Waiting for Kibana..."
           until curl -s http://kibana-service:5601/api/status | grep -q "available"; do 
             echo "Waiting for Kibana API..."; 
@@ -62,7 +60,6 @@ spec:
           
           echo "Kibana is ready. Cleaning up old setup..."
           
-          # Delete any existing objects with the same IDs to avoid conflicts
           curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/index-pattern/project-index-pattern" -H 'kbn-xsrf: true'
           curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/total-events" -H 'kbn-xsrf: true'
           curl -s -X DELETE "http://kibana-service:5601/api/saved_objects/visualization/failure-events" -H 'kbn-xsrf: true'
@@ -74,7 +71,6 @@ spec:
           
           echo "Importing Unified Project Dashboard..."
           
-          # Import Unified System (Pattern + Viz + Dashboard)
           curl -s -X POST "http://kibana-service:5601/api/saved_objects/_import?overwrite=true" \
             -H 'kbn-xsrf: true' \
             --form file=@/mnt/dashboard/dashboard.ndjson
@@ -85,7 +81,6 @@ spec:
             -H 'Content-Type: application/json' \
             -d '{"index_pattern_id":"project-index-pattern","force":true}'
 
-          # Wait for some data to appear so refresh actually finds fields
           echo "Waiting for data in project-logs-*..."
           until curl -s "http://elasticsearch:9200/project-logs-*/_count" | grep -q "\"count\":[1-9]"; do
             echo "Still waiting for some logs to be indexed..."

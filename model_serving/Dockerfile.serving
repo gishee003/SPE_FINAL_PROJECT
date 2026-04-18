@@ -5,7 +5,6 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy code
 COPY serve.py .
 
 EXPOSE 5002

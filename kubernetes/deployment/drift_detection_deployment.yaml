@@ -46,7 +46,6 @@ spec:
           timeoutSeconds: 2
           failureThreshold: 3
         env:
-        # Training microservice endpoint (used when drift is detected)
         - name: TRAINING_URL
           value: http://model-training-service.default.svc.cluster.local:5001/train
         volumeMounts:

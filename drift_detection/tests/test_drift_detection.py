@@ -3,7 +3,6 @@ from unittest.mock import patch, MagicMock
 import os
 import json
 
-# Adjust import to match your file structure
 import drift_detection.drift_detection as drift_detection 
 
 class TestDriftDetection(unittest.TestCase):
@@ -38,12 +37,10 @@ class TestDriftDetection(unittest.TestCase):
         
     @patch('requests.post')
     def test_detect_drift_success(self, mock_post):
-        # Mock retraining response
         mock_train_resp = MagicMock()
         mock_train_resp.json.return_value = {"status": "retraining_started"}
         mock_post.return_value = mock_train_resp
 
-        # Payload with extreme Age and Balance to trigger drift
         payload = [
             {
                 "CustomerId": 1,
@@ -83,7 +80,6 @@ class TestDriftDetection(unittest.TestCase):
         self.assertTrue(data["drift_detected"])  # Expect drift due to large Age/Balance difference
 
     def test_no_reference_found(self):
-        # Patch reference to be None to test the 'No reference distribution found' logic
         with patch('drift_detection.drift_detection.reference', None):
             payload = [{
                 "CustomerId": 1,

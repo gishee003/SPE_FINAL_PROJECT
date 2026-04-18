@@ -9,13 +9,11 @@ import model_training.train as training_app
 class TestTraining(unittest.TestCase):
     def setUp(self):
         self.client = training_app.app.test_client()
-        # Redirect pvc_path to a temporary directory
         self.tmpdir = tempfile.mkdtemp()
         training_app.pvc_path = self.tmpdir
 
     @patch('model_training.train.pd.read_csv')
     def test_train_model_success(self, mock_read_csv):
-        # Mock a small DataFrame
         mock_df = pd.DataFrame({
             "CustomerId": [12345, 67890],
             "CreditScore": [600, 700],
@@ -38,12 +36,10 @@ class TestTraining(unittest.TestCase):
         self.assertEqual(data["status"], "success")
         self.assertIn("Model and reference saved", data["message"])
 
-        # Verify files were created in the temp dir
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "churn_model.pkl")))
         self.assertTrue(os.path.exists(os.path.join(self.tmpdir, "reference_distribution.pkl")))
 
     def test_train_model_invalid_payload(self):
-        # Missing Exited column
         payload = [{
             "CustomerId": 12345,
             "CreditScore": 600,
@@ -56,7 +52,6 @@ class TestTraining(unittest.TestCase):
         self.assertIn("error", data)
 
     def tearDown(self):
-        # Clean up temp directory after tests
         for f in os.listdir(self.tmpdir):
             os.remove(os.path.join(self.tmpdir, f))
         os.rmdir(self.tmpdir)

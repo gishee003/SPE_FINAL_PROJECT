@@ -1,8 +1,3 @@
 ---
-# Kubernetes secret to create
 elk_k8s_namespace: "default"
 elk_k8s_secret_name: "elk-credentials"
-
-# Variables are expected to come from Ansible Vault file `ansible/vars/secrets.yml`
-# - elk_username
-# - elk_password

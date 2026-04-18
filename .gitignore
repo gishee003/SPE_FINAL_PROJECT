@@ -1,44 +1,35 @@
-# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.swp
 
-# Virtual environments
 venv/
 .env/
 .venv/
 
-# Logs
 *.log
 
-# Data artifacts
 data/
 *.joblib
 
 !data/churn-model/train.csv
 
-# Docker
 *.pid
 *.seed
 *.bak
 
-# OS files
 .DS_Store
 Thumbs.db
 
-# Jupyter
 .ipynb_checkpoints/
 
-# Coverage / testing
 .coverage
 htmlcov/
 .tox/
 .cache/
 pytest_cache/
 
-# Build / dist
 build/
 dist/
 *.egg-info/
