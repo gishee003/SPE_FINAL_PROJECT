@@ -1,0 +1,39 @@
+# Elasticsearch mapping augment for project-logs-* — fields referenced by Kibana dashboards
+# (kibana-dashboard-config.yaml) and structured logs from the four microservices.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: project-logs-es-mappings
+  labels:
+    app: kibana-setup
+data:
+  mappings.json: |
+    {
+      "properties": {
+        "service": {
+          "properties": {
+            "name": { "type": "keyword", "ignore_above": 1024 }
+          }
+        },
+        "event": {
+          "properties": {
+            "outcome": { "type": "keyword", "ignore_above": 256 },
+            "type": { "type": "keyword", "ignore_above": 256 }
+          }
+        },
+        "error": {
+          "properties": {
+            "type": { "type": "keyword", "ignore_above": 256 },
+            "code": { "type": "keyword", "ignore_above": 256 }
+          }
+        },
+        "app": {
+          "properties": {
+            "status": { "type": "keyword", "ignore_above": 256 }
+          }
+        },
+        "duration_ms": { "type": "long" },
+        "training_duration_ms": { "type": "long" },
+        "drift_p_value": { "type": "double" }
+      }
+    }

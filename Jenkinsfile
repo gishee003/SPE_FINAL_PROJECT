@@ -234,6 +234,7 @@ pipeline {
                     kubectl apply -f kubernetes/elk/elasticsearch.yaml --validate=false
                     kubectl apply -f kubernetes/elk/filebeat.yaml --validate=false
                     kubectl apply -f kubernetes/elk/kibana.yaml --validate=false
+                    kubectl apply -f kubernetes/elk/project-logs-es-mappings-configmap.yaml --validate=false
                     kubectl apply -f kubernetes/elk/kibana-dashboard-config.yaml --validate=false
 
                     # Jobs are immutable; recreate setup job every deployment
