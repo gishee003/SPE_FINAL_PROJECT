@@ -21,9 +21,38 @@ spec:
         - /bin/sh
         - -c
         - |
+          echo "Waiting for Elasticsearch..."
+          until curl -s http://elasticsearch:9200; do echo "Waiting for ES..."; sleep 2; done
+
+          # Composable template so project-logs-* always has dashboard numeric fields in mapping
+          # (Kibana drops fields that do not exist in any backing index).
+          echo "Installing Elasticsearch index template project-logs-app-fields..."
+          curl -s -X PUT "http://elasticsearch:9200/_index_template/project-logs-app-fields" \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "index_patterns": ["project-logs-*"],
+              "priority": 500,
+              "template": {
+                "mappings": {
+                  "properties": {
+                    "drift_p_value": { "type": "double" },
+                    "duration_ms": { "type": "long" },
+                    "training_duration_ms": { "type": "long" }
+                  }
+                }
+              }
+            }'
+
+          echo "Ensuring drift_p_value mapping on existing project-logs-* indices (ignore errors if already set)..."
+          curl -s "http://elasticsearch:9200/_cat/indices/project-logs-*?h=index" | while read -r idx; do
+            [ -z "$idx" ] && continue
+            curl -s -X PUT "http://elasticsearch:9200/${idx}/_mapping" \
+              -H 'Content-Type: application/json' \
+              -d '{"properties":{"drift_p_value":{"type":"double"}}}' || true
+          done
+
           # Wait for Kibana to be ready
           echo "Waiting for Kibana..."
-          until curl -s http://elasticsearch:9200; do echo "Waiting for ES..."; sleep 2; done
           until curl -s http://kibana-service:5601/api/status | grep -q "available"; do 
             echo "Waiting for Kibana API..."; 
             sleep 5; 

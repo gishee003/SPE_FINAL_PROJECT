@@ -189,10 +189,10 @@ def detect_drift():
                 "duration_ms": total_duration_ms,
                 "http": {"request": {"method": request.method, "path": request.path}},
             }
-            # Root-level float for Kibana avg; avoids polymorphic `drift.*` mapping issues.
+            # Root-level metric for Kibana avg; always present on feature_drift rows so the
+            # field stays in the index pattern (null for e.g. label drift with no p-value).
             pv = fe.get("p_value")
-            if pv is not None:
-                extra["drift_p_value"] = float(pv)
+            extra["drift_p_value"] = float(pv) if pv is not None else None
             log_event(
                 "drift",
                 "success",
