@@ -223,10 +223,21 @@ pipeline {
                     kubectl apply -f kubernetes/elk/project-logs-es-mappings-configmap.yaml --validate=false
                     kubectl apply -f kubernetes/elk/kibana-dashboard-config.yaml --validate=false
 
+                    kubectl rollout status deployment/elasticsearch --timeout=300s
+                    kubectl rollout status deployment/kibana --timeout=300s
+
                     kubectl delete job kibana-setup --ignore-not-found=true
                     kubectl apply -f kubernetes/elk/kibana-setup.yaml --validate=false
-                    kubectl wait --for=condition=complete job/kibana-setup --timeout=180s
-                    kubectl logs job/kibana-setup --tail=200
+                    if ! kubectl wait --for=condition=complete job/kibana-setup --timeout=420s; then
+                        echo "kibana-setup did not complete in time. Collecting diagnostics..."
+                        kubectl describe job kibana-setup || true
+                        kubectl logs job/kibana-setup --all-containers=true --tail=300 || true
+                        kubectl get pods -l app=kibana-setup -o wide || true
+                        kubectl get pods -l app=filebeat -o wide || true
+                        kubectl logs -l app=filebeat --tail=200 || true
+                        exit 1
+                    fi
+                    kubectl logs job/kibana-setup --all-containers=true --tail=300
 
                     echo "✅ ELK dashboard setup complete."
                 '''
@@ -260,7 +271,7 @@ pipeline {
                     nohup kubectl port-forward svc/drift-detection-service 5003:5003 --address=0.0.0.0 >/tmp/spe-port-forward/5003.log 2>&1 &
                     echo $! >/tmp/spe-port-forward/5003.pid
 
-                    nohup kubectl port-forward svc/kibana 5601:5601 --address=0.0.0.0 >/tmp/spe-port-forward/5601.log 2>&1 &
+                    nohup kubectl port-forward svc/kibana-service 5601:5601 --address=0.0.0.0 >/tmp/spe-port-forward/5601.log 2>&1 &
                     echo $! >/tmp/spe-port-forward/5601.pid
 
                     sleep 5
