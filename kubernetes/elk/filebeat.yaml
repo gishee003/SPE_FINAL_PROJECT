@@ -10,11 +10,15 @@ data:
       providers:
         - type: kubernetes
           node: ${NODE_NAME}
-          hints.enabled: true
-          hints.default_config:
-            type: container
-            paths:
-              - /var/log/containers/*${data.kubernetes.container.id}.log
+          # Only ship logs from this project's pods (not kube-system, etc.).
+          templates:
+            - condition:
+                regexp:
+                  kubernetes.labels.app: "^(model-training|model-serving|drift-detection|data-ingestion)$"
+              config:
+                - type: container
+                  paths:
+                    - /var/log/containers/*${data.kubernetes.container.id}.log
 
     processors:
       - add_kubernetes_metadata:
@@ -22,18 +26,19 @@ data:
           matchers:
             - logs_path:
                 logs_path: "/var/log/containers/"
-      # 1. Decode Docker JSON
+      # App stdout is JSON; ignore non-JSON lines without writing error.* into ES.
       - decode_json_fields:
           fields: ["message"]
           target: ""
           overwrite_keys: true
-          add_error_key: true
-      # 2. Decode Application Log (extracted from Docker)
+          ignore_failure: true
+          add_error_key: false
       - decode_json_fields:
           fields: ["log"]
           target: ""
           overwrite_keys: true
-          add_error_key: true
+          ignore_failure: true
+          add_error_key: false
 
     output.elasticsearch:
       hosts: ['elasticsearch:9200']
