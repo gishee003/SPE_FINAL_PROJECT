@@ -196,7 +196,6 @@ pipeline {
                     echo "Applying Kubernetes manifests..."
                     kubectl apply -f kubernetes/pv.yaml --validate=false
                     kubectl apply -f kubernetes/pvc.yaml --validate=false
-                    kubectl apply -f kubernetes/training_job_rbac.yaml --validate=false
                     
                     kubectl apply -f kubernetes/deployment/ --validate=false
                     kubectl apply -f kubernetes/service/ --validate=false
