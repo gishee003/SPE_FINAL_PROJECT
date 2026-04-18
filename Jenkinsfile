@@ -196,6 +196,7 @@ pipeline {
                     echo "Applying Kubernetes manifests..."
                     kubectl apply -f kubernetes/pv.yaml --validate=false
                     kubectl apply -f kubernetes/pvc.yaml --validate=false
+                    kubectl apply -f kubernetes/training_job_rbac.yaml --validate=false
                     
                     kubectl apply -f kubernetes/deployment/ --validate=false
                     kubectl apply -f kubernetes/service/ --validate=false
@@ -229,6 +230,42 @@ pipeline {
                     kubectl logs job/kibana-setup --tail=200
 
                     echo "✅ ELK dashboard setup complete."
+                '''
+            }
+        }
+        stage('Start Port Forwarding') {
+            environment {
+                KUBECONFIG = '/var/lib/jenkins/.kube/config'
+            }
+            steps {
+                sh '''
+                    mkdir -p /tmp/spe-port-forward
+
+                    for pidfile in /tmp/spe-port-forward/*.pid; do
+                        [ -f "$pidfile" ] || continue
+                        pid="$(cat "$pidfile" 2>/dev/null || true)"
+                        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                            kill "$pid" || true
+                        fi
+                    done
+
+                    nohup kubectl port-forward svc/data-ingestion-service 5000:5000 --address=0.0.0.0 >/tmp/spe-port-forward/5000.log 2>&1 &
+                    echo $! >/tmp/spe-port-forward/5000.pid
+
+                    nohup kubectl port-forward svc/model-training-service 5001:5001 --address=0.0.0.0 >/tmp/spe-port-forward/5001.log 2>&1 &
+                    echo $! >/tmp/spe-port-forward/5001.pid
+
+                    nohup kubectl port-forward svc/model-serving-service 5002:5002 --address=0.0.0.0 >/tmp/spe-port-forward/5002.log 2>&1 &
+                    echo $! >/tmp/spe-port-forward/5002.pid
+
+                    nohup kubectl port-forward svc/drift-detection-service 5003:5003 --address=0.0.0.0 >/tmp/spe-port-forward/5003.log 2>&1 &
+                    echo $! >/tmp/spe-port-forward/5003.pid
+
+                    nohup kubectl port-forward svc/kibana 5601:5601 --address=0.0.0.0 >/tmp/spe-port-forward/5601.log 2>&1 &
+                    echo $! >/tmp/spe-port-forward/5601.pid
+
+                    sleep 5
+                    ss -lntp | grep -E ':(5000|5001|5002|5003|5601)' || true
                 '''
             }
         }
