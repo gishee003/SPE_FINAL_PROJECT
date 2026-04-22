@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover
 
 
 DEFAULT_TARGET_COLUMN = "Exited"
-DEFAULT_DROP_COLUMNS = {"Surname", "id"}
+DEFAULT_DROP_COLUMNS = {"Surname", "id", "CustomerId", "RowNumber"}
 
 
 def _utc_now_iso() -> str:
@@ -104,7 +104,13 @@ class DriftRCAExplainer:
                     "Model deserialization failed due to scikit-learn version mismatch. "
                     "Run RCA in the same runtime as training, or retrain the model with the current environment."
                 ) from exc
-            raise
+            raise RuntimeError(f"Failed to load model from {self.model_path}: {exc}") from exc
+
+        if not os.path.exists(self.train_csv_path):
+            raise FileNotFoundError(f"Training CSV not found at {self.train_csv_path}")
+        if not os.path.exists(self.test_csv_path):
+            raise FileNotFoundError(f"Test CSV not found at {self.test_csv_path}")
+
         self.train_df = pd.read_csv(self.train_csv_path)
         self.test_df = pd.read_csv(self.test_csv_path)
         self.feature_columns = [
@@ -120,8 +126,13 @@ class DriftRCAExplainer:
         if self.model is None:
             self.load()
         train_features = self._prepare_features(self.train_df)
+        
+        # Optimize: Use a representative sample for baseline importance to save time/CPU
+        sample_size = min(200, len(train_features))
+        baseline_sample = train_features.sample(n=sample_size, random_state=42) if len(train_features) > sample_size else train_features
+
         explainer = _build_explainer(self.model, train_features)
-        shap_values = explainer(train_features)
+        shap_values = explainer(baseline_sample)
         positive_class_shap = _extract_positive_class_shap_values(shap_values)
         mean_abs = np.mean(np.abs(positive_class_shap), axis=0)
         self.baseline_importance = {

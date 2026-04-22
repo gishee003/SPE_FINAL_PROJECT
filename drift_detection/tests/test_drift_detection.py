@@ -35,19 +35,27 @@ class TestDriftDetection(unittest.TestCase):
             "label_distribution": {1: 0.2, 0: 0.8}
         }
         
+    @patch('drift_detection.drift_detection.generate_rca_report')
     @patch('requests.post')
-    def test_detect_drift_success(self, mock_post):
+    def test_detect_drift_success(self, mock_post, mock_rca):
         mock_train_resp = MagicMock()
         mock_train_resp.json.return_value = {"status": "retraining_started"}
         mock_post.return_value = mock_train_resp
+        
+        mock_rca.return_value = {
+            "report_type": "drift_root_cause_analysis",
+            "drifted_features": ["Age"],
+            "rogue_features": ["Age"],
+            "plain_english_explanation": "Test RCA"
+        }
 
         payload = [
             {
-                "CustomerId": 1,
+                "CustomerId": i,
                 "CreditScore": 600,
                 "Geography": "France",
                 "Gender": "Male",
-                "Age": 100,
+                "Age": 100 + i, # Highly drifted
                 "Tenure": 3,
                 "Balance": 90000.0,
                 "NumOfProducts": 2,
@@ -55,21 +63,7 @@ class TestDriftDetection(unittest.TestCase):
                 "IsActiveMember": 1,
                 "EstimatedSalary": 40000.0,
                 "Exited": 1
-            },
-            {
-                "CustomerId": 2,
-                "CreditScore": 650,
-                "Geography": "Germany",
-                "Gender": "Female",
-                "Age": 110,
-                "Tenure": 5,
-                "Balance": 95000.0,
-                "NumOfProducts": 1,
-                "HasCrCard": 0,
-                "IsActiveMember": 0,
-                "EstimatedSalary": 45000.0,
-                "Exited": 1
-            }
+            } for i in range(10)
         ]
 
         response = self.app.post('/drift', json=payload)
@@ -78,6 +72,8 @@ class TestDriftDetection(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("drift_detected", data)
         self.assertTrue(data["drift_detected"])  # Expect drift due to large Age/Balance difference
+        self.assertIn("rca_report", data)
+        self.assertEqual(data["rca_report"]["report_type"], "drift_root_cause_analysis")
 
     def test_no_reference_found(self):
         with patch('drift_detection.drift_detection.reference', None):

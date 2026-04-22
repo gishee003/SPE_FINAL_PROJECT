@@ -172,17 +172,33 @@ def detect_drift():
                 ]
                 if drifted_features:
                     try:
-                        response["rca_report"] = generate_rca_report(
-                            model_path=os.getenv("MODEL_PATH", "/data/churn-model/churn_model.pkl"),
-                            train_csv_path=os.getenv("TRAIN_CSV_PATH", "/data/churn-model/train.csv"),
-                            test_csv_path=os.getenv("TEST_CSV_PATH", "/data/churn-model/test.csv"),
-                            reference_path=reference_file,
-                            drifted_features=drifted_features,
-                            drifted_batch_records=data if isinstance(data, list) else [data],
-                            shift_threshold_ratio=float(
+                        rca_service_url = os.getenv("RCA_SERVICE_URL")
+                        rca_payload = {
+                            "model_path": os.getenv("MODEL_PATH", "/data/churn-model/churn_model.pkl"),
+                            "train_csv_path": os.getenv("TRAIN_CSV_PATH", "/data/churn-model/train.csv"),
+                            "test_csv_path": os.getenv("TEST_CSV_PATH", "/data/churn-model/test.csv"),
+                            "reference_path": reference_file,
+                            "drifted_features": drifted_features,
+                            "drifted_batch_records": data if isinstance(data, list) else [data],
+                            "shift_threshold_ratio": float(
                                 os.getenv("RCA_SHIFT_THRESHOLD_RATIO", "1.5")
                             ),
-                        )
+                        }
+
+                        if rca_service_url:
+                            # Call standalone RCA service
+                            rca_resp = requests.post(f"{rca_service_url.rstrip('/')}/run-rca", json=rca_payload, timeout=30)
+                            if rca_resp.status_code == 200:
+                                response["rca_report"] = rca_resp.json()
+                            else:
+                                response["rca_report"] = {
+                                    "report_type": "drift_root_cause_analysis",
+                                    "error": f"RCA service returned status {rca_resp.status_code}: {rca_resp.text}",
+                                    "plain_english_explanation": "Drift was detected, but standalone RCA service call failed."
+                                }
+                        else:
+                            # Run RCA locally
+                            response["rca_report"] = generate_rca_report(**rca_payload)
                     except Exception as rca_exc:
                         response["rca_report"] = {
                             "report_type": "drift_root_cause_analysis",

@@ -48,6 +48,12 @@ spec:
         env:
         - name: TRAINING_URL
           value: http://model-training-service.default.svc.cluster.local:5001/train
+        - name: RCA_SERVICE_URL
+          value: http://rca-service:5004
+        - name: ENABLE_XAI_RCA
+          value: "true"
+        - name: RCA_SHIFT_THRESHOLD_RATIO
+          value: "1.5"
         volumeMounts:
         - name: churn-model-storage
           mountPath: /data/churn-model
