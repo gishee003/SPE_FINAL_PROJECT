@@ -6,7 +6,7 @@ from scipy.stats import ks_2samp
 import requests
 import os
 import time
-from rca_xai import generate_rca_report
+from drift_detection.rca_xai import generate_rca_report
 
 app = Flask(__name__)
 

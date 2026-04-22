@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 import os
 
-from rca_xai import generate_rca_report
+from drift_detection.rca_xai import generate_rca_report
 
 app = Flask(__name__)
 
