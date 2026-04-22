@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rca-service
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: rca-service
+  template:
+    metadata:
+      labels:
+        app: rca-service
+    spec:
+      containers:
+      - name: rca-service
+        image: kirtinigam003/rca_service:latest
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        ports:
+        - containerPort: 5004
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5004
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5004
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        env:
+        - name: MODEL_PATH
+          value: /data/churn-model/churn_model.pkl
+        - name: TRAIN_CSV_PATH
+          value: /data/churn-model/train.csv
+        - name: TEST_CSV_PATH
+          value: /data/churn-model/test.csv
+        - name: REFERENCE_PATH
+          value: /data/churn-model/reference_distribution.pkl
+        - name: RCA_SHIFT_THRESHOLD_RATIO
+          value: "1.5"
+        volumeMounts:
+        - name: churn-model-storage
+          mountPath: /data/churn-model
+      volumes:
+      - name: churn-model-storage
+        persistentVolumeClaim:
+          claimName: churn-model-pvc

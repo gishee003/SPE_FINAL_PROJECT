@@ -179,6 +179,12 @@ pipeline {
                         }
                     }
                 }
+                stage('RCA') {
+                    steps {
+                        sh 'docker build -t kirtinigam003/rca_service:latest -f drift_detection/Dockerfile.rca .'
+                        sh 'docker push kirtinigam003/rca_service:latest'
+                    }
+                }
             }
         }
 
@@ -199,6 +205,8 @@ pipeline {
                     
                     kubectl apply -f kubernetes/deployment/ --validate=false
                     kubectl apply -f kubernetes/service/ --validate=false
+                    kubectl apply -f kubernetes/deployment/rca_service_deployment.yaml --validate=false
+                    kubectl apply -f kubernetes/service/rca_service.yaml --validate=false
 
                     kubectl apply -f kubernetes/hpa.yaml --validate=false
 

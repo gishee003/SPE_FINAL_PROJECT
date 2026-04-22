@@ -6,6 +6,7 @@ from scipy.stats import ks_2samp
 import requests
 import os
 import time
+from rca_xai import generate_rca_report
 
 app = Flask(__name__)
 
@@ -157,6 +158,36 @@ def detect_drift():
             if training_url:
                 train_response = requests.post(training_url, json=data)
                 response["training_response"] = train_response.json()
+
+            rca_enabled = os.getenv("ENABLE_XAI_RCA", "true").lower() == "true"
+            if rca_enabled:
+                drifted_features = [
+                    fe["feature"]
+                    for fe in feature_events
+                    if fe.get("feature") != "label_drift" and fe.get("drifted")
+                ]
+                if drifted_features:
+                    try:
+                        response["rca_report"] = generate_rca_report(
+                            model_path=os.getenv("MODEL_PATH", "/data/churn-model/churn_model.pkl"),
+                            train_csv_path=os.getenv("TRAIN_CSV_PATH", "/data/churn-model/train.csv"),
+                            test_csv_path=os.getenv("TEST_CSV_PATH", "/data/churn-model/test.csv"),
+                            reference_path=reference_file,
+                            drifted_features=drifted_features,
+                            drifted_batch_records=data if isinstance(data, list) else [data],
+                            shift_threshold_ratio=float(
+                                os.getenv("RCA_SHIFT_THRESHOLD_RATIO", "1.5")
+                            ),
+                        )
+                    except Exception as rca_exc:
+                        response["rca_report"] = {
+                            "report_type": "drift_root_cause_analysis",
+                            "error": str(rca_exc),
+                            "plain_english_explanation": (
+                                "Drift was detected, but RCA report generation failed. "
+                                "Verify model and CSV artifact availability for SHAP analysis."
+                            ),
+                        }
 
         total_duration_ms = int((time.perf_counter() - started_perf) * 1000)
 
