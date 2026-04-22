@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover
 
 
 DEFAULT_TARGET_COLUMN = "Exited"
-DEFAULT_DROP_COLUMNS = {"Surname", "id", "CustomerId", "RowNumber"}
+DEFAULT_DROP_COLUMNS = {"Surname", "id"}
 
 
 def _utc_now_iso() -> str:
@@ -44,12 +44,31 @@ def _extract_positive_class_shap_values(shap_values) -> np.ndarray:
 def _build_explainer(model, background_df: pd.DataFrame):
     if shap is None:
         raise ImportError("shap is not installed. Install dependencies from requirements.txt.")
-    try:
-        return shap.Explainer(model, background_df)
-    except Exception:
-        predict_fn = model.predict_proba if hasattr(model, "predict_proba") else model.predict
-        background = shap.sample(background_df, min(100, len(background_df)))
-        return shap.Explainer(predict_fn, background)
+    
+    # Identify categorical columns to exclude from SHAP but include in model calls
+    all_cols = background_df.columns.tolist()
+    num_cols = background_df.select_dtypes(include=[np.number]).columns.tolist()
+    cat_cols = [c for c in all_cols if c not in num_cols]
+    
+    # Defaults for categorical columns (using mode if available, else a placeholder)
+    cat_defaults = {}
+    for col in cat_cols:
+        cat_defaults[col] = background_df[col].mode()[0] if not background_df[col].mode().empty else ""
+
+    def predict_fn(X):
+        # X is numeric-only from SHAP
+        X_df = pd.DataFrame(X, columns=num_cols)
+        # Re-insert categorical columns with default values
+        for col, val in cat_defaults.items():
+            X_df[col] = val
+        # Ensure column order matches what the model expects
+        X_df = X_df[all_cols]
+        return model.predict_proba(X_df) if hasattr(model, "predict_proba") else model.predict(X_df)
+
+    background_num = background_df[num_cols]
+    background_sample = shap.sample(background_num, min(100, len(background_num)))
+    
+    return shap.Explainer(predict_fn, background_sample)
 
 
 def _install_sklearn_pickle_compat_shims():
@@ -132,11 +151,15 @@ class DriftRCAExplainer:
         baseline_sample = train_features.sample(n=sample_size, random_state=42) if len(train_features) > sample_size else train_features
 
         explainer = _build_explainer(self.model, train_features)
-        shap_values = explainer(baseline_sample)
+        
+        # Only pass numeric columns to the explainer as cat columns are handled by the wrapper
+        num_cols = baseline_sample.select_dtypes(include=[np.number]).columns.tolist()
+        shap_values = explainer(baseline_sample[num_cols])
+        
         positive_class_shap = _extract_positive_class_shap_values(shap_values)
         mean_abs = np.mean(np.abs(positive_class_shap), axis=0)
         self.baseline_importance = {
-            feature: float(mean_abs[idx]) for idx, feature in enumerate(train_features.columns)
+            feature: float(mean_abs[idx]) for idx, feature in enumerate(num_cols)
         }
         return self.baseline_importance
 
@@ -158,6 +181,10 @@ class DriftRCAExplainer:
             mask = np.zeros(len(self.test_df), dtype=bool)
             for feat in drifted_features:
                 if feat in self.test_df.columns and feat in means:
+                    # Only calculate z-score for numeric features to avoid TypeError
+                    if not pd.api.types.is_numeric_dtype(self.test_df[feat]):
+                        continue
+                        
                     std = float(stds.get(feat, 0.0))
                     if std <= 1e-9:
                         continue
@@ -186,12 +213,16 @@ class DriftRCAExplainer:
         train_features = self._prepare_features(self.train_df)
 
         explainer = _build_explainer(self.model, train_features)
-        drifted_shap_values = explainer(drifted_features_df)
+        
+        # Only pass numeric columns to the explainer
+        num_cols = drifted_features_df.select_dtypes(include=[np.number]).columns.tolist()
+        drifted_shap_values = explainer(drifted_features_df[num_cols])
+        
         drifted_positive_shap = _extract_positive_class_shap_values(drifted_shap_values)
         drifted_mean_abs = np.mean(np.abs(drifted_positive_shap), axis=0)
 
         feature_comparison = []
-        for idx, feature in enumerate(drifted_features_df.columns):
+        for idx, feature in enumerate(num_cols):
             baseline_value = float(self.baseline_importance.get(feature, 0.0))
             current_value = float(drifted_mean_abs[idx])
             shift_delta = current_value - baseline_value
