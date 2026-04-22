@@ -6,7 +6,11 @@ from scipy.stats import ks_2samp
 import requests
 import os
 import time
-from drift_detection.rca_xai import generate_rca_report
+try:
+    from drift_detection.rca_xai import generate_rca_report
+except (ImportError, ModuleNotFoundError):
+    from rca_xai import generate_rca_report
+
 
 app = Flask(__name__)
 
