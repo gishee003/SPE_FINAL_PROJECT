@@ -172,7 +172,7 @@ grep -o '"drift_detected": [^,]*' /tmp/drift-no.json
 Send rows that are **far outside** the training distribution (extreme ages, balances, credit scores, and skewed labels). This pattern is intentionally harsh and normally triggers drift (and therefore a retrain when `TRAINING_URL` is set):
 
 ```bash
-export DRIFT_HEAVY='[{"CustomerId":901,"CreditScore":300,"Geography":"France","Gender":"Male","Age":95,"Tenure":50,"Balance":999999,"NumOfProducts":1,"HasCrCard":0,"IsActiveMember":0,"EstimatedSalary":200000,"Exited":1},{"CustomerId":902,"CreditScore":250,"Geography":"France","Gender":"Male","Age":99,"Tenure":40,"Balance":888888,"NumOfProducts":1,"HasCrCard":0,"IsActiveMember":0,"EstimatedSalary":250000,"Exited":1}]'
+export export DRIFT_HEAVY='[{"CustomerId":901,"CreditScore":300,"Geography":"France","Gender":"Male","Age":95,"Tenure":50,"Balance":999999,"NumOfProducts":1,"HasCrCard":0,"IsActiveMember":0,"EstimatedSalary":200000,"Exited":1},{"CustomerId":902,"CreditScore":250,"Geography":"France","Gender":"Male","Age":99,"Tenure":40,"Balance":888888,"NumOfProducts":1,"HasCrCard":0,"IsActiveMember":0,"EstimatedSalary":250000,"Exited":1},{"CustomerId":903,"CreditScore":700,"Geography":"Germany","Gender":"Female","Age":45,"Tenure":10,"Balance":5000,"NumOfProducts":2,"HasCrCard":1,"IsActiveMember":1,"EstimatedSalary":60000,"Exited":0}]'
 curl -sS -X POST "$DRIFT/drift" -H "Content-Type: application/json" -d "$DRIFT_HEAVY" | tee /tmp/drift-yes.json
 # Expect: "drift_detected": true
 grep -o '"drift_detected": [^,]*' /tmp/drift-yes.json
