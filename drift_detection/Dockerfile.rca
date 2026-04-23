@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY drift_detection/rca_xai.py /app/rca_xai.py
 COPY drift_detection/rca_service.py /app/rca_service.py
+COPY drift_detection/dashboard.html /app/dashboard.html
 
 EXPOSE 5004
 

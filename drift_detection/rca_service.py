@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 import os
 import time
 import json
@@ -11,6 +11,11 @@ except (ImportError, ModuleNotFoundError):
     from rca_xai import generate_rca_report
 
 app = Flask(__name__)
+
+@app.route("/dashboard")
+def dashboard():
+    return send_from_directory(".", "dashboard.html")
+
 
 logging.basicConfig(
     level=logging.INFO,
