@@ -52,6 +52,7 @@ flowchart LR
 | **Model training** | 5001 | `POST /train` — fit model + reference; `GET /health` for compose healthchecks. |
 | **Model serving** | 5002 | `POST /predict` — load model from PVC, return predictions. |
 | **Drift detection** | 5003 | `POST /drift` — returns `drift_detected` + `details`; calls **`TRAINING_URL`** (retrain) when drift is detected and that env var is set. |
+| **Root Cause Analysis** | 5004 | `POST /run-rca` — calculates SHAP influence shifts to identify "rogue" features; `GET /dashboard` — visualizes drift insights. |
 
 ---
 
@@ -60,13 +61,12 @@ flowchart LR
 | Layer | Technology |
 |-------|------------|
 | APIs | Python **Flask** |
-| ML | **pandas**, **numpy**, **scipy**, **scikit-learn** |
+| ML / XAI | **pandas**, **numpy**, **scipy**, **scikit-learn**, **SHAP** (RCA service) |
 | Containers | **Docker** |
-| Orchestration | **Kubernetes** (Deployments with **rolling updates** + `/health` readiness, Services, PV/PVC, **HPA** on ingestion, serving, drift — not on training) |
-| CI/CD | **Jenkins** (`Jenkinsfile`: Ansible, unit tests, compose integration, image build/push, K8s deploy, ELK setup) |
-| Infrastructure as code | **Ansible** (`ansible/site.yml`, Vault-encrypted secrets) |
-| Logs / dashboards | **Elasticsearch 7.17**, **Filebeat** (JSON container logs → `project-logs-*`), **Kibana** (imported dashboards) |
-| Security | **Ansible Vault** (AES-256) for sensitive variables |
+| Orchestration | **Kubernetes** |
+| Innovative Idea | **Self-Explaining Drift**: Automatic Root Cause Analysis using SHAP to identify "Rogue Features" driving distribution changes. |
+| Logs / dashboards | **Elasticsearch**, **Kibana**, **Custom RCA Dashboard** (Port 5004/dashboard) |
+| Security | **Ansible Vault** (AES-256) |
 
 **Shared storage:** Kubernetes **PersistentVolume** / **PersistentVolumeClaim** mounts the same path (`/data/churn-model`) into training, serving, and drift pods so artifacts and `train.csv` are shared.
 
@@ -142,6 +142,15 @@ Training emits structured events including `training_run_started`, `training_run
 **Response shape (success):** `{"drift_detected": <bool>, "details": { ... }}` and, when a retrain call was made, **`"training_response": { ... }`** (the JSON body returned by **`POST /train`**).
 
 On **`POST /ingest`**, the same drift payload appears under **`drift_response`**, for example **`drift_response.drift_detected`**.
+
+---
+
+### Root Cause Analysis (`:5004`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/run-rca` | Analyzes SHAP influence shifts for `drifted_features`. Returns a "Rogue Feature" report. |
+| `GET` | `/dashboard` | Interactive UI to visualize drift insights and SHAP comparison charts. |
 
 ---
 
@@ -276,6 +285,33 @@ curl -sS -X POST "$INGEST/ingest" -H "Content-Type: application/json" -d '{}'
 ### 6. Kibana / Elasticsearch smoke (generate log volume for dashboards)
 
 After training at least once, repeat **predict**, **drift**, and **ingest** a few times, then open Kibana with a time range covering **Last 15 minutes** (or **Last 24 hours**). Per-service dashboards filter by `service.name` (`ingest`, `predict`, `train`, `drift`); hitting each endpoint directly ensures every service’s panels receive events.
+
+---
+
+### 6. Root Cause Analysis (XAI)
+
+**Terminal Mode:**
+```bash
+curl -X POST http://localhost:5004/run-rca \
+  -H "Content-Type: application/json" \
+  -d '{"drifted_features":["Age","Balance"]}'
+```
+
+**Dashboard Mode (Recommended):**
+Open your browser to: `http://localhost:5004/dashboard`
+
+---
+
+### 7. Simulation: Ingesting from `test.csv`
+To simulate real traffic and trigger drift detection, run:
+```bash
+python3 -c "import pandas as pd, requests, json; \
+df = pd.read_csv('data/churn-model/test.csv').head(10); \
+df['Age'] = 95; df['Balance'] = 0; \
+payload = df.to_dict(orient='records'); \
+r = requests.post('http://localhost:5000/ingest', json=payload); \
+print(json.dumps(r.json(), indent=2))"
+```
 
 ---
 
