@@ -41,14 +41,11 @@ def _extract_positive_class_shap_values(shap_values) -> np.ndarray:
     raise ValueError(f"Unexpected SHAP value shape: {arr.shape}")
 
 
-def _build_explainer(model, background_df: pd.DataFrame):
+def _build_explainer(model, background_df: pd.DataFrame, num_cols: List[str], cat_cols: List[str]):
     if shap is None:
         raise ImportError("shap is not installed. Install dependencies from requirements.txt.")
     
-    # Identify categorical columns to exclude from SHAP but include in model calls
     all_cols = background_df.columns.tolist()
-    num_cols = background_df.select_dtypes(include=[np.number]).columns.tolist()
-    cat_cols = [c for c in all_cols if c not in num_cols]
     
     # Defaults for categorical columns (using mode if available, else a placeholder)
     cat_defaults = {}
@@ -69,6 +66,7 @@ def _build_explainer(model, background_df: pd.DataFrame):
     background_sample = shap.sample(background_num, min(100, len(background_num)))
     
     return shap.Explainer(predict_fn, background_sample)
+
 
 
 def _install_sklearn_pickle_compat_shims():
@@ -137,6 +135,11 @@ class DriftRCAExplainer:
             for col in self.train_df.columns
             if col != self.target_column and col not in DEFAULT_DROP_COLUMNS
         ]
+        # Explicitly define categorical vs numeric to ensure consistency across environments
+        self.categorical_columns = ["Geography", "Gender"]
+        self.numeric_columns = [
+            c for c in self.feature_columns if c not in self.categorical_columns
+        ]
 
     def _prepare_features(self, df: pd.DataFrame) -> pd.DataFrame:
         return df[self.feature_columns].copy()
@@ -147,19 +150,19 @@ class DriftRCAExplainer:
         train_features = self._prepare_features(self.train_df)
         
         # Optimize: Use a representative sample for baseline importance to save time/CPU
-        sample_size = min(200, len(train_features))
+        # Use a smaller sample for the baseline to speed up explainer creation
+        sample_size = min(100, len(train_features))
         baseline_sample = train_features.sample(n=sample_size, random_state=42) if len(train_features) > sample_size else train_features
 
-        explainer = _build_explainer(self.model, train_features)
+        explainer = _build_explainer(self.model, train_features, self.numeric_columns, self.categorical_columns)
         
-        # Only pass numeric columns to the explainer as cat columns are handled by the wrapper
-        num_cols = baseline_sample.select_dtypes(include=[np.number]).columns.tolist()
-        shap_values = explainer(baseline_sample[num_cols])
+        # Pass only the predefined numeric columns to the explainer
+        shap_values = explainer(baseline_sample[self.numeric_columns])
         
         positive_class_shap = _extract_positive_class_shap_values(shap_values)
         mean_abs = np.mean(np.abs(positive_class_shap), axis=0)
         self.baseline_importance = {
-            feature: float(mean_abs[idx]) for idx, feature in enumerate(num_cols)
+            feature: float(mean_abs[idx]) for idx, feature in enumerate(self.numeric_columns)
         }
         return self.baseline_importance
 
@@ -210,19 +213,21 @@ class DriftRCAExplainer:
             drifted_features=drifted_features,
         )
         drifted_features_df = self._prepare_features(drifted_df)
+        
+        # Limit the number of drifted samples to explain to speed up RCA
+        if len(drifted_features_df) > 50:
+            drifted_features_df = drifted_features_df.sample(n=50, random_state=42)
+            
         train_features = self._prepare_features(self.train_df)
 
-        explainer = _build_explainer(self.model, train_features)
-        
-        # Only pass numeric columns to the explainer
-        num_cols = drifted_features_df.select_dtypes(include=[np.number]).columns.tolist()
-        drifted_shap_values = explainer(drifted_features_df[num_cols])
+        explainer = _build_explainer(self.model, train_features, self.numeric_columns, self.categorical_columns)
+        drifted_shap_values = explainer(drifted_features_df[self.numeric_columns])
         
         drifted_positive_shap = _extract_positive_class_shap_values(drifted_shap_values)
         drifted_mean_abs = np.mean(np.abs(drifted_positive_shap), axis=0)
 
         feature_comparison = []
-        for idx, feature in enumerate(num_cols):
+        for idx, feature in enumerate(self.numeric_columns):
             baseline_value = float(self.baseline_importance.get(feature, 0.0))
             current_value = float(drifted_mean_abs[idx])
             shift_delta = current_value - baseline_value
@@ -240,6 +245,20 @@ class DriftRCAExplainer:
                     "is_rogue": bool(is_rogue),
                 }
             )
+
+        # Add categorical features to comparison with 0 importance (held constant in this wrapper)
+        for feature in self.feature_columns:
+            if feature not in self.numeric_columns:
+                feature_comparison.append({
+                    "feature": feature,
+                    "baseline_mean_abs_shap": 0.0,
+                    "drifted_mean_abs_shap": 0.0,
+                    "shift_delta": 0.0,
+                    "shift_ratio": None,
+                    "is_rogue": False,
+                    "note": "Categorical feature (held constant in SHAP analysis)"
+                })
+
 
         rogue_features = [item["feature"] for item in feature_comparison if item["is_rogue"]]
         explanation = (

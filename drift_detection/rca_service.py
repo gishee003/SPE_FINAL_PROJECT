@@ -59,6 +59,7 @@ def run_rca():
             log_event("rca", "error", extra={"error": {"message": err_msg, "path": model_path}})
             return jsonify({"error": err_msg}), 404
             
+        log_event("rca", "success", extra={"rca": {"step": "explaining_drift"}})
         report = generate_rca_report(
             model_path=model_path,
             train_csv_path=train_csv_path,
@@ -98,4 +99,4 @@ def run_rca():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5004)
+    app.run(host="0.0.0.0", port=5004, threaded=True)
