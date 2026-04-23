@@ -16,6 +16,44 @@ app = Flask(__name__)
 def dashboard():
     return send_from_directory(".", "dashboard.html")
 
+@app.route("/get-distribution/<feature>")
+def get_distribution(feature):
+    try:
+        try:
+            from drift_detection.rca_xai import DriftRCAExplainer
+        except:
+            from rca_xai import DriftRCAExplainer
+        
+        model_path = os.getenv("MODEL_PATH", "/data/churn-model/churn_model.pkl")
+        train_csv_path = os.getenv("TRAIN_CSV_PATH", "/data/churn-model/train.csv")
+        test_csv_path = os.getenv("TEST_CSV_PATH", "/data/churn-model/test.csv")
+
+        explainer = DriftRCAExplainer(
+            model_path=model_path,
+            train_csv_path=train_csv_path,
+            test_csv_path=test_csv_path
+        )
+        explainer.load()
+        
+        if feature not in explainer.train_df.columns:
+            return jsonify({"error": f"Feature {feature} not found in training data"}), 404
+        if feature not in explainer.test_df.columns:
+            return jsonify({"error": f"Feature {feature} not found in production data"}), 404
+
+        # Get training distribution
+        train_vals = explainer.train_df[feature].dropna().tolist()
+        # Get production distribution (from test.csv)
+        prod_vals = explainer.test_df[feature].dropna().tolist()
+        
+        return jsonify({
+            "feature": feature,
+            "train": train_vals,
+            "production": prod_vals
+        })
+    except Exception as e:
+        log_event("rca", "error", extra={"error": {"message": str(e)}, "feature": feature})
+        return jsonify({"error": str(e)}), 500
+
 
 logging.basicConfig(
     level=logging.INFO,
