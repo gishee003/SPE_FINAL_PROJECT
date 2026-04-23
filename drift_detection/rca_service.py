@@ -5,7 +5,10 @@ import json
 import logging
 import sys
 
-from drift_detection.rca_xai import generate_rca_report
+try:
+    from drift_detection.rca_xai import generate_rca_report
+except (ImportError, ModuleNotFoundError):
+    from rca_xai import generate_rca_report
 
 app = Flask(__name__)
 
