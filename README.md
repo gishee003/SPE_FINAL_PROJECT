@@ -44,6 +44,17 @@ flowchart LR
 
 ---
 
+## Innovative Idea: Self-Explaining Drift (Root Cause Analysis)
+
+Most MLOps pipelines stop at **Drift Detection** (knowing *if* the data changed). This project introduces **Self-Explaining Drift** via a dedicated **Root Cause Analysis (RCA)** service.
+
+### Why is this innovative?
+*   **Bridging the Gap**: Statistical drift (like KS-test) often flags features that don't actually affect the model's accuracy. Our RCA service uses **SHAP (Explainable AI)** to verify if the drifted features are actually "Rogue Features"—those that are now driving the model's decisions more than they did during training.
+*   **Actionable Insights**: Instead of a blind "drift detected" alert, the system provides a **Visual Dashboard** and a **Plain English Explanation** (e.g., *"Age is the rogue feature causing this drift"*).
+*   **Smart Retraining**: It prevents unnecessary retraining by identifying whether the drift is benign or requires immediate intervention.
+
+---
+
 ## Microservices overview
 
 | Service | Port (default) | Role |
@@ -303,7 +314,19 @@ Open your browser to: `http://localhost:5004/dashboard`
 ---
 
 ### 7. Simulation: Ingesting from `test.csv`
-To simulate real traffic and trigger drift detection, run:
+
+**Scenario A: Normal Ingestion (No Drift)**
+This reads the first 10 rows of your test data and sends them as a live batch.
+```bash
+python3 -c "import pandas as pd, requests, json; \
+df = pd.read_csv('data/churn-model/test.csv').head(10); \
+payload = df.to_dict(orient='records'); \
+r = requests.post('http://localhost:5000/ingest', json=payload); \
+print(json.dumps(r.json(), indent=2))"
+```
+
+**Scenario B: Forced Drift (Triggering RCA)**
+This script skews the data (Extreme Age + 0 Balance) to force the system to detect drift and trigger the Root Cause Analysis report.
 ```bash
 python3 -c "import pandas as pd, requests, json; \
 df = pd.read_csv('data/churn-model/test.csv').head(10); \
