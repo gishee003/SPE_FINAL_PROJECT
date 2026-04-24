@@ -5,283 +5,218 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIA | XAI Diagnostic Command Center</title>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deep: '#020617',
+                        card: 'rgba(15, 23, 42, 0.7)',
+                        borderMuted: '#1e293b',
+                        cyan: '#22d3ee',
+                        emerald: '#10b981',
+                        amber: '#f59e0b',
+                        rose: '#f43f5e',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --bg-deep: #020617;
-            --bg-card: #0f172a;
-            --border-muted: #1e293b;
-            --accent-cyan: #22d3ee;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            background: var(--bg-deep); 
-            color: var(--text-primary); 
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            line-height: 1.5;
+            background: linear-gradient(135deg, #020617 0%, #0a0f1d 100%);
+            color: #f8fafc; 
         }
-
-        /* Dashboard Layout */
-        .app-container {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: 100vh;
+        .glass-card {
+            background: var(--card);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
-
-        /* Sidebar */
-        aside {
-            background: #000;
-            border-right: 1px solid var(--border-muted);
-            padding: 2rem 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-
-        .logo {
-            font-size: 1.25rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .logo-box {
-            width: 32px;
-            height: 32px;
-            background: var(--accent-cyan);
-            border-radius: 6px;
-        }
-
-        .nav-section-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-        }
-
-        .heatmap-cell {
-            aspect-ratio: 1;
-            background: var(--border-muted);
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: 600;
-            text-align: center;
-            padding: 4px;
-        }
-
-        .heatmap-cell:hover { transform: scale(1.05); outline: 2px solid var(--accent-cyan); }
-
-        /* Main Content */
-        main { padding: 2rem 3rem; background: radial-gradient(circle at top right, rgba(34, 211, 238, 0.05), transparent); }
-
-        /* Executive Header */
-        .exec-header {
-            background: var(--bg-card);
-            border: 1px solid var(--border-muted);
-            border-radius: 1rem;
-            padding: 1.5rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-        }
-
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--accent-emerald);
-            box-shadow: 0 0 15px var(--accent-emerald);
-        }
-
-        .status-text { font-size: 1.25rem; font-weight: 700; }
-
-        .header-stats { display: flex; gap: 3rem; }
-        .stat-item { text-align: right; }
-        .stat-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; }
-        .stat-value { font-size: 1.5rem; font-weight: 800; font-family: 'JetBrains Mono'; }
-
-        /* Cards and Visuals */
-        .grid-layout {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .viz-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-muted);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            position: relative;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-title { font-size: 1rem; font-weight: 700; }
-
-        .insights-card {
-            grid-column: span 1;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .insight-text { font-size: 1rem; color: var(--text-primary); line-height: 1.7; font-weight: 400; }
-
-        .action-btn {
-            background: var(--accent-cyan);
-            color: var(--bg-deep);
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 700;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover { background: #fff; transform: translateY(-2px); }
-
-        /* Loader */
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(2,6,23,0.9); z-index: 1000;
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; gap: 1rem;
-        }
-        .spinner { width: 40px; height: 40px; border: 4px solid var(--accent-cyan); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #22d3ee; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .hidden { display: none !important; }
+        /* Custom Checkbox */
+        .feature-checkbox:checked + label {
+            background: rgba(34, 211, 238, 0.1);
+            border-color: #22d3ee;
+            color: #22d3ee;
+        }
     </style>
 </head>
-<body>
-    <div id="overlay">
+<body class="antialiased overflow-x-hidden min-h-screen">
+    <div id="overlay" class="fixed inset-0 bg-deep/90 z-50 flex flex-col items-center justify-center gap-4 transition-opacity duration-300">
         <div class="spinner"></div>
-        <p>Analyzing Model Integrity...</p>
+        <p class="text-lg font-semibold tracking-wide animate-pulse text-cyan">Analyzing Model Integrity...</p>
     </div>
 
-    <div class="app-container">
-        <aside>
-            <div class="logo">
-                <div class="logo-box"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] min-h-screen">
+        <!-- Sidebar -->
+        <aside class="bg-black/50 border-r border-borderMuted p-6 flex flex-col gap-8 backdrop-blur-md">
+            <div class="flex items-center gap-3 text-xl font-extrabold tracking-tight">
+                <div class="w-8 h-8 bg-gradient-to-br from-cyan to-blue-600 rounded-lg shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
                 AIA DIAGNOSTIC
             </div>
 
             <div>
-                <div class="nav-section-title">Feature Health Heatmap</div>
-                <div class="feature-grid" id="heatmapGrid">
+                <div class="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wider">Feature Health Heatmap</div>
+                <div class="grid grid-cols-2 gap-2" id="heatmapGrid">
                     <!-- Heatmap cells injected here -->
                 </div>
             </div>
 
-            <div style="margin-top: auto;">
-                <button class="action-btn" style="width: 100%;" onclick="location.reload()">Refresh Pipeline</button>
+            <div class="flex-grow">
+                <div class="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wider">RCA Feature Selection</div>
+                <div class="grid grid-cols-2 gap-2 mb-4" id="featureCheckboxes">
+                    <!-- Features Checkboxes -->
+                </div>
+                <button onclick="runCustomRCA()" class="w-full bg-gradient-to-r from-cyan to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-deep font-bold py-3 px-4 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.3)] transition-all duration-300 transform hover:-translate-y-1">
+                    Run Custom Analysis
+                </button>
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-borderMuted">
+                <button onclick="location.reload()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300">
+                    Refresh Pipeline
+                </button>
             </div>
         </aside>
 
-        <main>
-            <div class="exec-header">
-                <div class="status-badge">
-                    <div id="statusIndicator" class="status-indicator"></div>
+        <!-- Main Content -->
+        <main class="p-8 pb-12 relative overflow-y-auto">
+            <!-- Background glow -->
+            <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan/10 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+
+            <!-- Executive Header -->
+            <div class="glass-card rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+                <div class="flex items-center gap-4">
+                    <div id="statusIndicator" class="w-4 h-4 rounded-full bg-emerald shadow-[0_0_15px_rgba(16,185,129,0.8)]"></div>
                     <div>
-                        <div id="statusText" class="status-text">Model Healthy</div>
-                        <div style="font-size: 0.8rem; color: var(--text-secondary)">Last Analysis: Just Now</div>
+                        <div id="statusText" class="text-2xl font-bold tracking-tight">Model Healthy</div>
+                        <div class="text-sm text-slate-400 mt-1">Last Analysis: Just Now</div>
                     </div>
                 </div>
-                <div class="header-stats">
-                    <div class="stat-item">
-                        <div class="stat-label">CONFIDENCE SCORE</div>
-                        <div class="stat-value" id="confScore">98%</div>
+                <div class="flex gap-8 md:gap-12">
+                    <div class="text-right">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Confidence Score</div>
+                        <div class="text-3xl font-extrabold font-mono" id="confScore">98%</div>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-label">ROGUE FEATURES</div>
-                        <div class="stat-value" style="color: var(--accent-amber)" id="rogueCount">0</div>
+                    <div class="text-right">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Rogue Features</div>
+                        <div class="text-3xl font-extrabold font-mono text-amber" id="rogueCount">0</div>
                     </div>
-                </div>
-            </div>
-
-            <div class="grid-layout">
-                <div class="viz-card insights-card">
-                    <div class="card-header">
-                        <div class="card-title">Diagnostic Insights</div>
-                        <div style="color: var(--accent-cyan)">AI Summary</div>
-                    </div>
-                    <p id="explanationText" class="insight-text">Loading insights...</p>
-                </div>
-
-                <div class="viz-card">
-                    <div class="card-header">
-                        <div class="card-title">Feature Importance Delta (XAI)</div>
-                        <div class="stat-label">Baseline vs Drifted</div>
-                    </div>
-                    <div id="deltaChart" style="height: 300px;"></div>
                 </div>
             </div>
 
-            <div class="viz-card" style="margin-bottom: 1.5rem;">
-                <div class="card-header">
-                    <div class="card-title">The 'Mirror' Distribution (Statistical Drift)</div>
-                    <select id="featureSelector" onchange="updateMirrorHistogram()" style="background: var(--bg-deep); color: white; border: 1px solid var(--border-muted); padding: 0.5rem; border-radius: 4px;">
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-6 mb-6">
+                <!-- Insights Card -->
+                <div class="glass-card rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-deep border border-slate-800">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-lg">Diagnostic Insights</h3>
+                        <span class="text-cyan text-sm font-semibold bg-cyan/10 px-3 py-1 rounded-full">AI Summary</span>
+                    </div>
+                    <p id="explanationText" class="text-slate-300 leading-relaxed text-sm">Loading insights...</p>
+                </div>
+
+                <!-- Delta Chart Card -->
+                <div class="glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold text-lg">Feature Importance Delta (XAI)</h3>
+                        <span class="text-slate-400 text-sm font-semibold">Baseline vs Drifted</span>
+                    </div>
+                    <div id="deltaChart" class="h-[300px] w-full"></div>
+                </div>
+            </div>
+
+            <!-- Mirror Distribution Card -->
+            <div class="glass-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-lg">The 'Mirror' Distribution (Statistical Drift)</h3>
+                    <select id="featureSelector" onchange="updateMirrorHistogram()" class="bg-deep text-white border border-borderMuted px-4 py-2 rounded-lg focus:outline-none focus:border-cyan transition-colors">
                         <!-- Options injected -->
                     </select>
                 </div>
-                <div id="mirrorHistogram" style="height: 400px;"></div>
+                <div id="mirrorHistogram" class="h-[400px] w-full"></div>
             </div>
         </main>
     </div>
 
     <script>
         let dashboardData = null;
+        const ALL_FEATURES = ['CreditScore', 'Geography', 'Gender', 'Age', 'Tenure', 'Balance', 'NumOfProducts', 'HasCrCard', 'IsActiveMember', 'EstimatedSalary'];
 
         async function initDashboard() {
+            renderCheckboxes();
+            // Start with a couple of defaults checked
+            document.getElementById('chk_Age').checked = true;
+            document.getElementById('chk_Balance').checked = true;
+            await runCustomRCA();
+        }
+
+        function renderCheckboxes() {
+            const container = document.getElementById('featureCheckboxes');
+            container.innerHTML = '';
+            ALL_FEATURES.forEach(feature => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative';
+                
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.id = `chk_${feature}`;
+                input.value = feature;
+                input.className = 'feature-checkbox hidden';
+
+                const label = document.createElement('label');
+                label.htmlFor = `chk_${feature}`;
+                label.className = 'block w-full text-center text-[10px] font-semibold py-2 px-1 border border-borderMuted rounded cursor-pointer transition-all duration-200 text-slate-400 hover:border-slate-500 truncate';
+                label.innerText = feature;
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(label);
+                container.appendChild(wrapper);
+            });
+        }
+
+        async function runCustomRCA() {
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('hidden');
+            overlay.style.opacity = '1';
+            
             try {
+                // Gather checked features
+                const checkboxes = document.querySelectorAll('.feature-checkbox:checked');
+                let features = Array.from(checkboxes).map(cb => cb.value);
+                if (features.length === 0) features = ["Age", "Balance"]; // fallback
+
                 const response = await fetch('/run-rca', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ drifted_features: ["Age", "Balance"] }) // Initial probe
+                    body: JSON.stringify({ drifted_features: features })
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                
                 dashboardData = await response.json();
                 renderUI();
-                document.getElementById('overlay').classList.add('hidden');
+                
+                // Hide overlay smoothly
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.classList.add('hidden'), 300);
             } catch (err) {
                 console.error(err);
-                alert("Critical: Failed to fetch diagnostic data.");
+                alert("Critical: Failed to fetch diagnostic data. " + err.message);
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.classList.add('hidden'), 300);
             }
         }
 
@@ -294,10 +229,13 @@
             const rogueCountEl = document.getElementById('rogueCount');
 
             if (rogueCount > 0) {
-                statusIndicator.style.background = 'var(--accent-rose)';
-                statusIndicator.style.boxShadow = '0 0 15px var(--accent-rose)';
+                statusIndicator.className = 'w-4 h-4 rounded-full bg-rose shadow-[0_0_15px_rgba(244,63,94,0.8)]';
                 statusText.innerText = 'Critical Drift Detected';
                 confScore.innerText = (100 - (rogueCount * 15)) + '%';
+            } else {
+                statusIndicator.className = 'w-4 h-4 rounded-full bg-emerald shadow-[0_0_15px_rgba(16,185,129,0.8)]';
+                statusText.innerText = 'Model Healthy';
+                confScore.innerText = '98%';
             }
             rogueCountEl.innerText = rogueCount;
             document.getElementById('explanationText').innerText = dashboardData.plain_english_explanation;
@@ -311,10 +249,7 @@
             dashboardData.feature_comparison.forEach(f => {
                 const isRogue = f.is_rogue;
                 const cell = document.createElement('div');
-                cell.className = 'heatmap-cell';
-                cell.style.background = isRogue ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.1)';
-                cell.style.color = isRogue ? 'var(--accent-amber)' : 'var(--accent-emerald)';
-                cell.style.border = isRogue ? '1px solid var(--accent-amber)' : '1px solid transparent';
+                cell.className = `aspect-square rounded flex items-center justify-center text-[10px] font-bold text-center p-1 cursor-pointer transition-all duration-300 transform hover:scale-105 border ${isRogue ? 'bg-amber/20 text-amber border-amber shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-emerald/10 text-emerald border-transparent hover:border-emerald'}`;
                 cell.innerText = f.feature;
                 cell.onclick = () => { selector.value = f.feature; updateMirrorHistogram(); };
                 grid.appendChild(cell);
@@ -329,7 +264,9 @@
             renderDeltaChart();
             
             // 4. Initial Mirror Histogram
-            updateMirrorHistogram();
+            if(dashboardData.feature_comparison.length > 0) {
+                updateMirrorHistogram();
+            }
         }
 
         function renderDeltaChart() {
@@ -367,6 +304,7 @@
 
         async function updateMirrorHistogram() {
             const feature = document.getElementById('featureSelector').value;
+            if(!feature) return;
             const res = await fetch(`/get-distribution/${feature}`);
             const data = await res.json();
 
