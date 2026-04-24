@@ -64,12 +64,7 @@
                 AIA DIAGNOSTIC
             </div>
 
-            <div>
-                <div class="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wider">Feature Health Heatmap</div>
-                <div class="grid grid-cols-2 gap-2" id="heatmapGrid">
-                    <!-- Heatmap cells injected here -->
-                </div>
-            </div>
+
 
             <div class="flex-grow">
                 <div class="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wider">RCA Feature Selection</div>
@@ -240,20 +235,11 @@
             rogueCountEl.innerText = rogueCount;
             document.getElementById('explanationText').innerText = dashboardData.plain_english_explanation;
 
-            // 2. Heatmap & Selector
-            const grid = document.getElementById('heatmapGrid');
+            // 2. Feature Selector
             const selector = document.getElementById('featureSelector');
-            grid.innerHTML = '';
             selector.innerHTML = '';
 
             dashboardData.feature_comparison.forEach(f => {
-                const isRogue = f.is_rogue;
-                const cell = document.createElement('div');
-                cell.className = `aspect-square rounded flex items-center justify-center text-[10px] font-bold text-center p-1 cursor-pointer transition-all duration-300 transform hover:scale-105 border ${isRogue ? 'bg-amber/20 text-amber border-amber shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'bg-emerald/10 text-emerald border-transparent hover:border-emerald'}`;
-                cell.innerText = f.feature;
-                cell.onclick = () => { selector.value = f.feature; updateMirrorHistogram(); };
-                grid.appendChild(cell);
-
                 const opt = document.createElement('option');
                 opt.value = f.feature;
                 opt.innerText = f.feature;
