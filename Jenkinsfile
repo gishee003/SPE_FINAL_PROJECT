@@ -210,6 +210,8 @@ pipeline {
 
                     kubectl apply -f kubernetes/hpa.yaml --validate=false
 
+                    kubectl rollout restart deployment rca-service
+
                     echo "✅ Deployment commands sent successfully."
                     kubectl get pods
                 '''
